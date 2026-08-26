@@ -1,0 +1,2942 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CairmDB Manager</title>
+  <style media="not all">
+    :root {
+      color-scheme: dark;
+      --bg: #0e0e0d;
+      --panel: #191917;
+      --panel-head: #1e1e1b;
+      --surface: #232321;
+      --surface-alt: #2b2b27;
+      --control: #121211;
+      --line: #34332f;
+      --section: #1b1b18;
+      --well: #161613;
+      --text: #e9e7e2;
+      --muted: #9c988f;
+      --accent: #8fb9d8;
+      --accent-soft: #182532;
+      --danger: #e3685b;
+      --ok: #5fbf82;
+      --warn: #e2a64e;
+      --glow: 0 0 12px -3px rgba(143, 185, 216, 0.45);
+      --radius: 0;
+      --box-1: 8px;
+      --box-2: 6px;
+      --box-3: 4px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-weight: 400; }
+    button, input, select, textarea { font: inherit; }
+    button {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--control);
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.primary { border-color: var(--accent); background: var(--accent); color: #07131d; }
+    button.small {
+      min-height: 28px;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    button.icon {
+      width: 28px;
+      min-height: 28px;
+      height: 28px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      font-size: 18px;
+      line-height: 1;
+    }
+    button.danger { border-color: rgba(180, 35, 24, 0.35); color: var(--danger); }
+    button:disabled { cursor: not-allowed; opacity: 0.55; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--control);
+      color: var(--text);
+      padding: 8px 10px;
+      outline: none;
+    }
+    textarea { min-height: 74px; resize: vertical; }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), var(--glow);
+    }
+
+    .app { height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      gap: 9px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .topbar, .toolbar, .tabs, .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .toolbar-spacer { flex: 1; }
+    .topbar { justify-content: space-between; gap: 16px; }
+    h1 { margin: 0; font-size: 21px; font-weight: 700; line-height: 1.2; letter-spacing: 0.01em; }
+    .status { color: var(--muted); font-size: 13px; font-weight: 400; text-align: right; }
+    .tab {
+      min-height: 36px;
+      padding: 8px 13px;
+      border-radius: var(--radius);
+      color: var(--muted);
+    }
+    .tab[aria-selected="true"] {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    main { min-height: 0; overflow: hidden; padding: 12px; }
+    .view { display: none; min-height: 0; height: 100%; }
+    .view.is-active { display: block; }
+    .split {
+      display: grid;
+      grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+      gap: 14px;
+      height: 100%;
+      min-height: 0;
+      align-items: start;
+    }
+    .panel {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 0;
+      border-radius: var(--radius);
+      background: var(--panel);
+      overflow: hidden;
+      height: 100%;
+    }
+    .editor-panel {
+      max-height: 100%;
+    }
+    .panel-head {
+      display: grid;
+      gap: 9px;
+      padding: 10px;
+      background: var(--panel-head);
+    }
+    h2 {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+    .stack { display: grid; align-content: start; gap: 9px; padding: 10px; overflow: auto; min-height: 0; }
+    .head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .title-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 10px;
+    }
+    .field { display: grid; gap: 5px; }
+    .compact-select {
+      min-height: 28px;
+      width: auto;
+      max-width: 100%;
+      padding: 4px 28px 4px 8px;
+      font-size: 12px;
+      font-weight: 400;
+    }
+    .service-head .compact-select {
+      flex: 1 1 110px;
+      min-width: 0;
+      max-width: 180px;
+    }
+    .inline-select {
+      width: auto;
+      min-height: 26px;
+      padding: 3px 24px 3px 0;
+      border-color: transparent;
+      background: transparent;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .sort-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    label { color: var(--muted); font-size: 11px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.03em; }
+    .list { display: grid; gap: 7px; }
+    .item {
+      display: grid;
+      gap: 4px;
+      width: 100%;
+      min-height: 0;
+      padding: 9px 10px;
+      text-align: left;
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .item.is-active { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+    .item.is-checked {
+      background: rgba(95, 191, 130, 0.24);
+      box-shadow: inset 3px 0 0 rgba(95, 191, 130, 0.78);
+    }
+    .item.is-active.is-checked {
+      background: rgba(95, 191, 130, 0.34);
+      box-shadow: inset 3px 0 0 var(--ok), 0 0 0 1px rgba(95, 191, 130, 0.42);
+    }
+    .item.has-no-data {
+      background: rgba(217, 45, 32, 0.16);
+      box-shadow: inset 3px 0 0 rgba(217, 45, 32, 0.78);
+    }
+    .item.is-active.has-no-data {
+      background: rgba(217, 45, 32, 0.24);
+      box-shadow: inset 3px 0 0 var(--danger), 0 0 0 1px rgba(217, 45, 32, 0.34);
+    }
+    .item strong, .row-title { display: block; font-size: 13px; font-weight: 700; line-height: 1.25; }
+    .meta { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.3; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 7px;
+      border-radius: 0;
+      background: #eef2f6;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge.yes { background: #dcfae6; color: var(--ok); }
+    .badge.no { background: #fee4e2; color: var(--danger); }
+    .badge.temp { background: #fef0c7; color: var(--warn); }
+    [data-theme="dark"] .badge { background: #2a2a25; }
+    [data-theme="dark"] .badge.yes { background: #1d2c1c; }
+    [data-theme="dark"] .badge.no { background: #33211e; }
+    [data-theme="dark"] .badge.temp { background: #332813; }
+    .zone-tabs { display: flex; flex-wrap: wrap; gap: 5px; }
+    .zone-tab { min-height: 28px; padding: 4px 9px; color: var(--muted); font-size: 12px; }
+    .zone-tab.is-active { color: var(--text); box-shadow: 0 0 11px -2px currentColor; }
+    .zone-tab.is-active.region-europe { background: rgba(41, 255, 135, 0.24); border-color: rgba(41, 255, 135, 0.78); color: #dfffea; }
+    .zone-tab.is-active.region-usa { background: rgba(32, 200, 255, 0.24); border-color: rgba(32, 200, 255, 0.78); color: #e2f8ff; }
+    .zone-tab.is-active.region-canada { background: rgba(255, 204, 0, 0.24); border-color: rgba(255, 204, 0, 0.78); color: #fff4b8; }
+    .zone-tab.is-active.region-hong_kong_taiwan { background: rgba(156, 255, 122, 0.24); border-color: rgba(156, 255, 122, 0.78); color: #ecffe6; }
+    .zone-tab.is-active.region-australia { background: rgba(255, 93, 82, 0.24); border-color: rgba(255, 93, 82, 0.78); color: #ffe1de; }
+    .zone-tab.is-active.region-rest_of_world { background: rgba(255, 122, 0, 0.24); border-color: rgba(255, 122, 0, 0.78); color: #ffe3c2; }
+    .data-card {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border-radius: var(--box-1);
+      background: var(--surface);
+      box-shadow: 0 2px 10px -6px rgba(0, 0, 0, 0.7);
+    }
+    .editor-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 14px;
+      padding-bottom: 2px;
+    }
+    .editor-title {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+    .title-inline {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      min-width: 0;
+    }
+    .editor-title .row-title {
+      font-size: 16px;
+    }
+    .editor-id {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+    .editor-section {
+      display: grid;
+      gap: 9px;
+      padding: 10px;
+      border-radius: var(--box-2);
+      background: var(--section);
+    }
+    .section-title {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .service-grid.three {
+      grid-template-columns: repeat(3, minmax(170px, 1fr));
+    }
+    .service-card {
+      display: grid;
+      gap: 8px;
+      padding: 9px;
+      border-radius: var(--box-3);
+      background: var(--well);
+    }
+    .service-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 28px;
+      min-width: 0;
+    }
+    .service-head-actions {
+      display: flex;
+      align-items: center;
+      justify-content: end;
+      gap: 8px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .service-head > label {
+      flex: 0 0 auto;
+    }
+    .service-head-actions .checkline {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .table-wrap { overflow: auto; border-radius: var(--radius); background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; min-width: 920px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { position: sticky; top: 0; background: var(--surface-alt); color: var(--muted); font-size: 11px; text-transform: uppercase; z-index: 1; }
+    td { background: var(--surface); color: var(--text); }
+    .fee-row, .sku-row, .product-row, .selected-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 120px auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .sku-row {
+      grid-template-columns: minmax(220px, 0.7fr) minmax(280px, 1.3fr) auto;
+      align-items: start;
+      padding: 10px;
+      background: var(--well);
+    }
+    .sku-row textarea { min-height: 82px; }
+    .sku-editor-card {
+      gap: 12px;
+    }
+    .sku-editor-card .editor-section {
+      gap: 8px;
+      padding: 11px;
+    }
+    .sku-section-titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+    }
+    .sku-section-titlebar .section-title {
+      color: var(--text);
+      font-size: 12px;
+      text-transform: none;
+    }
+    .sku-optional,
+    .sku-count {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 400;
+    }
+    .sku-default-input {
+      min-height: 38px;
+      font-weight: 700;
+    }
+    .sku-region-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap: 7px;
+    }
+    .sku-region-row {
+      display: grid;
+      grid-template-columns: minmax(128px, 0.55fr) minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      padding: 7px;
+      border: 1px solid transparent;
+      background: var(--well);
+    }
+    .sku-region-row.has-value {
+      border-color: rgba(143, 185, 216, 0.28);
+      background: rgba(24, 37, 50, 0.48);
+    }
+    .sku-region-row .region-pill {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sku-region-row input {
+      min-width: 0;
+      min-height: 34px;
+      padding-block: 6px;
+    }
+    .sku-list-head {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.7fr) minmax(280px, 1.3fr) 34px;
+      gap: 8px;
+      padding: 0 8px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .sku-country-row {
+      grid-template-columns: minmax(220px, 0.7fr) minmax(280px, 1.3fr) 34px;
+      align-items: center;
+      gap: 8px;
+      padding: 7px;
+      border: 1px solid transparent;
+    }
+    .sku-country-row:focus-within {
+      border-color: rgba(143, 185, 216, 0.34);
+    }
+    .sku-country-row select,
+    .sku-country-row input {
+      min-width: 0;
+      min-height: 34px;
+      padding-block: 6px;
+    }
+    .sku-remove {
+      width: 34px !important;
+      height: 34px !important;
+      min-height: 34px !important;
+      color: var(--danger);
+      font-size: 19px !important;
+    }
+    .sku-remove:hover {
+      border-color: var(--danger);
+      background: rgba(227, 104, 91, 0.12);
+    }
+    .product-row, .selected-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      background: var(--well);
+    }
+    .empty {
+      padding: 14px;
+      border-radius: var(--box-2);
+      background: var(--well);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 400;
+      text-align: center;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 30px;
+    }
+    .switch {
+      position: relative;
+      width: 48px;
+      height: 24px;
+      flex: 0 0 auto;
+    }
+    .switch input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .slider {
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(224, 111, 98, 0.75);
+      border-radius: 999px;
+      background: #6b2b26;
+      box-shadow: inset 0 0 0 1px rgba(224, 111, 98, 0.16);
+    }
+    .slider::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 2px;
+      top: 2px;
+      border-radius: 50%;
+      background: #d8dcdf;
+      box-shadow: none;
+      transition: transform 0.16s ease;
+    }
+    .switch input:checked + .slider {
+      background: #24734a;
+      border-color: rgba(86, 184, 122, 0.8);
+      box-shadow: inset 0 0 0 1px rgba(86, 184, 122, 0.16);
+    }
+    .switch input:checked + .slider::after { transform: translateX(24px); }
+    .toggle-state {
+      min-width: 34px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .toggle-state.yes { color: var(--ok); }
+    .toggle-state.no { color: var(--danger); }
+    .toggle-state.temp { color: var(--warn); }
+    .toggle-row.is-temp .slider {
+      background: #795420;
+      border-color: rgba(216, 162, 76, 0.82);
+      box-shadow: inset 0 0 0 1px rgba(216, 162, 76, 0.16);
+    }
+    .toggle-row.is-temp .slider::after {
+      background: #ded6c6;
+      transform: translateX(12px);
+    }
+    .checkline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+      text-transform: none;
+    }
+    .checkline input { width: 15px; height: 15px; padding: 0; accent-color: var(--ok); }
+    .region-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 0;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .region-europe { color: #29ff87; background: rgba(41, 255, 135, 0.1); border-color: rgba(41, 255, 135, 0.38); }
+    .region-usa { color: #20c8ff; background: rgba(32, 200, 255, 0.12); border-color: rgba(32, 200, 255, 0.42); }
+    .region-canada { color: #ffcc00; background: rgba(255, 204, 0, 0.12); border-color: rgba(255, 204, 0, 0.42); }
+    .region-hong_kong_taiwan { color: #9cff7a; background: rgba(156, 255, 122, 0.1); border-color: rgba(156, 255, 122, 0.38); }
+    .region-australia { color: #ff5d52; background: rgba(255, 93, 82, 0.12); border-color: rgba(255, 93, 82, 0.42); }
+    .region-rest_of_world { color: #ff7a00; background: rgba(255, 122, 0, 0.12); border-color: rgba(255, 122, 0, 0.42); }
+    .note-large { min-height: 132px; }
+    .hidden { display: none !important; }
+    .drag-handle {
+      width: 22px;
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      cursor: grab;
+      font-weight: 700;
+      letter-spacing: -2px;
+    }
+    .selected-row {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    .selected-row.is-dragging { opacity: 0.55; }
+    .ok { color: var(--ok); }
+    .dirty { color: var(--warn); }
+
+    @media (max-width: 1180px) {
+      .sku-region-grid { grid-template-columns: 1fr; }
+      .sku-list-head,
+      .sku-country-row {
+        grid-template-columns: minmax(160px, 0.7fr) minmax(180px, 1.3fr) 34px;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .split { grid-template-columns: 1fr; min-height: 0; overflow: auto; align-content: start; }
+      .panel { min-height: 360px; }
+      .grid-2, .grid-3, .fee-row, .sku-row, .service-grid, .service-grid.three, .form-grid { grid-template-columns: 1fr; }
+      .sku-region-grid { grid-template-columns: 1fr; }
+      .sku-region-row { grid-template-columns: minmax(120px, 0.55fr) minmax(0, 1fr); }
+      .sku-list-head { display: none; }
+      .sku-country-row { grid-template-columns: 1fr; }
+      .sku-country-row .sku-remove { justify-self: end; }
+    }
+
+    /* Shell layout: compact database workbench — keeps the existing Cairm visual language. */
+    :root {
+      color-scheme: dark;
+      --bg: #0e0e0d;
+      --panel: #191917;
+      --panel-head: #1e1e1b;
+      --surface: #232321;
+      --surface-alt: #2b2b27;
+      --control: #121211;
+      --line: #34332f;
+      --section: #1b1b18;
+      --well: #161613;
+      --text: #e9e7e2;
+      --muted: #9c988f;
+      --accent: #8fb9d8;
+      --accent-soft: #182532;
+      --danger: #e3685b;
+      --ok: #5fbf82;
+      --warn: #e2a64e;
+      --glow: 0 0 12px -3px rgba(143, 185, 216, 0.45);
+      --box-1: 0;
+      --box-2: 0;
+      --box-3: 0;
+    }
+    body { padding: 8px; background: var(--bg); font-weight: 400; }
+    .app {
+      height: calc(100vh - 16px);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+    header { position: static; gap: 0; padding: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .topbar { min-height: 62px; align-items: stretch; gap: 0; }
+    h1 {
+      display: grid;
+      place-items: center start;
+      width: 160px;
+      margin: 0;
+      padding: 0 26px;
+      border-right: 1px solid var(--line);
+      font-size: 27px;
+      font-weight: 400;
+      letter-spacing: .12em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .status { display: none; }
+    .top-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; padding: 10px 24px; }
+    button {
+      min-height: 36px;
+      padding: 6px 12px;
+      border-color: var(--line);
+      background: var(--control);
+      color: var(--text);
+      font-weight: 400;
+    }
+    button.primary { border-color: var(--accent); background: var(--accent); color: #07131d; }
+    button:hover:not(:disabled), .tab:hover { background: var(--surface-alt); }
+    .utility-hidden { display: none; }
+    .toolbar { min-height: 56px; gap: 0; border-top: 0; }
+    .tabs { height: 56px; gap: 0; flex-wrap: nowrap; }
+    .tab {
+      min-width: 108px;
+      height: 56px;
+      min-height: 56px;
+      margin: 0;
+      padding: 8px 20px;
+      border-width: 0 1px 0 0;
+      border-color: var(--line);
+      color: var(--text);
+      font-size: 16px;
+    }
+    .tab[aria-selected="true"] { border-color: var(--accent); border-width: 2px; background: var(--accent-soft); color: var(--accent); }
+    main { padding: 8px; }
+    .split { grid-template-columns: 380px minmax(0, 1fr); gap: 8px; }
+    .panel { border: 1px solid var(--line); background: var(--panel); }
+    .panel-head { gap: 8px; padding: 8px; border-bottom: 1px solid var(--line); background: var(--panel-head); }
+    .panel-head h2 { display: none; }
+    .head-row { min-height: 0; justify-content: flex-end; }
+    .head-row:has(h2:only-child) { display: none; }
+    .sort-row { grid-template-columns: minmax(0, 1fr) 32px; gap: 10px; }
+    input, select, textarea { border-color: var(--line); background: var(--control); color: var(--text); padding: 6px 10px; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--glow); }
+    .compact-select {
+      width: 32px;
+      min-height: 32px;
+      padding: 3px;
+      color: var(--text);
+      font-size: 14px;
+      text-indent: 0;
+      background-position: center;
+    }
+    .stack { gap: 0; padding: 6px; }
+    .list { gap: 0; border: 1px solid var(--line); }
+    .item { gap: 3px; padding: 7px 5px; border: 0; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--text); }
+    .item:last-child { border-bottom: 0; }
+    .item.is-active { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+    .item strong, .row-title { font-size: 14px; font-weight: 400; }
+    .meta, label, h2 { color: var(--muted); font-weight: 400; }
+    .editor-panel .panel-head { display: none; }
+    .editor-panel .stack { padding: 12px; }
+    .data-card, .editor-section, .service-card, .product-row, .selected-row, .sku-row, .sku-region-row, .empty { border: 1px solid var(--line); background: var(--surface); box-shadow: none; }
+    .data-card, .editor-section { padding: 12px; }
+    .badge { border: 1px solid var(--line); background: var(--surface); color: var(--text); font-weight: 400; }
+    .actions button.icon, button.icon { width: 32px; height: 32px; min-height: 32px; }
+    @media (max-width: 980px) {
+      body { padding: 0; }
+      .app { height: 100vh; border: 0; }
+      h1 { width: auto; padding: 0 14px; font-size: 20px; }
+      .top-actions { gap: 6px; padding: 8px; }
+      .top-actions button { padding: 5px 8px; }
+      .tab { min-width: auto; padding: 8px 12px; font-size: 14px; }
+    }
+
+    /* Dense desktop application layer */
+    :root {
+      --bg: #0c0f13;
+      --panel: #14181e;
+      --panel-head: #171c23;
+      --surface: #1a2028;
+      --surface-alt: #202733;
+      --control: #11161d;
+      --line: #2a323e;
+      --section: #171d25;
+      --well: #11161c;
+      --text: #edf1f7;
+      --muted: #8e99a8;
+      --accent: #5b9dff;
+      --accent-soft: rgba(91, 157, 255, .13);
+      --danger: #ee746d;
+      --ok: #61c58a;
+      --warn: #e5b65e;
+      --glow: 0 0 0 3px rgba(91, 157, 255, .16);
+      --radius: 7px;
+      --box-1: 8px;
+      --box-2: 6px;
+      --box-3: 5px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body { background: var(--bg); letter-spacing: 0; }
+    .app { grid-template-rows: auto minmax(0, 1fr); }
+    header { padding: 0; gap: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .topbar { min-height: 56px; padding: 0 14px; gap: 14px; }
+    h1 { display: flex; align-items: center; gap: 9px; width: auto; margin: 0; padding: 0; border-right: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+    .version-badge { padding: 3px 6px; border: 1px solid #364150; border-radius: 999px; color: #9dc5ff; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+    .status { display: block; overflow: hidden; max-width: 420px; color: var(--muted); font-size: 11px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+    .status[hidden] { display: none !important; }
+    .top-actions { gap: 5px; padding: 0; }
+    .top-actions button, .toolbar-action { min-height: 31px; padding: 5px 8px; border-color: transparent; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .top-actions button:hover:not(:disabled), .toolbar-action:hover:not(:disabled) { border-color: var(--line); background: var(--surface); color: var(--text); }
+    .top-actions button.primary { border-color: rgba(91, 157, 255, .42); background: var(--accent-soft); color: #9dc5ff; }
+    .svg-icon { width: 15px; height: 15px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+    .with-icon { display: inline-flex; align-items: center; gap: 6px; }
+    .icon-action { display: inline-grid; width: 31px; height: 31px; place-items: center; padding: 0 !important; }
+    .icon-action .svg-icon { width: 16px; height: 16px; }
+    .icon-action img { width: 18px; height: 18px; object-fit: contain; opacity: .84; filter: invert(72%) sepia(12%) saturate(420%) hue-rotate(177deg) brightness(91%) contrast(87%); }
+    .icon-action.primary img { filter: none; opacity: .9; }
+    .copy-db-action { min-width: 92px; border-color: #4f90ef !important; background: #3e7fda !important; color: #fff !important; font-size: 12px; font-weight: 750 !important; box-shadow: 0 0 0 1px rgba(138, 190, 255, .16), 0 5px 14px rgba(32, 93, 180, .28); }
+    .copy-db-action:hover:not(:disabled), .copy-db-action:focus-visible { border-color: #8ebcff !important; background: #4d90ee !important; }
+    .icon-action:hover img, .icon-action:focus-visible img { opacity: 1; }
+    .toolbar { min-height: 42px; padding: 0 14px; border-top: 1px solid #202631; }
+    .tabs { height: 42px; gap: 3px; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-width: auto; height: 32px; min-height: 32px; padding: 5px 9px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .tab .svg-icon { width: 14px; height: 14px; }
+    .tab[aria-selected="true"] { border: 1px solid rgba(91, 157, 255, .34); background: var(--accent-soft); color: #9dc5ff; }
+    main { padding: 8px; }
+    .split { grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 8px; }
+    .panel { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+    .panel-head { gap: 7px; padding: 9px; border-bottom: 1px solid var(--line); background: var(--panel-head); }
+    .panel-head h2 { display: block; color: var(--text); font-size: 12px; font-weight: 650; letter-spacing: .01em; text-transform: none; }
+    .head-row { min-height: 30px; justify-content: space-between; gap: 6px; }
+    .head-row:has(h2:only-child) { display: flex; }
+    .sort-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: center; }
+    .list-heading { display: flex; flex: 1 1 auto; align-items: center; gap: 8px; min-width: 0; }
+    .list-heading h2 { white-space: nowrap; }
+    .list-sort-select { flex: 0 1 122px; width: 122px; min-width: 0; min-height: 28px; padding: 3px 24px 3px 8px; color: var(--muted); font-size: 10px; }
+    .head-row > .actions { flex: 0 0 auto; flex-wrap: nowrap; gap: 5px; }
+    .filter-menu > button { width: 32px; height: 32px; min-height: 32px; padding: 0; }
+    .filter-menu > button.is-active { border-color: #4f90ef; background: var(--accent-soft); color: #9dc5ff; }
+    .filter-popover { width: 238px; padding: 7px; border-color: #364150; background: #161b24; box-shadow: 0 12px 28px rgba(0, 0, 0, .4); }
+    .filter-popover label { min-height: 32px; padding: 6px 7px; color: var(--text); font-size: 11px; }
+    input, select, textarea { border-color: var(--line); border-radius: 6px; background: var(--control); font-size: 12px; }
+    input { min-height: 32px; }
+    input::placeholder { color: #687383; }
+    .compact-select { width: 34px; min-height: 32px; padding: 3px 5px; color: var(--muted); font-size: 11px; }
+    .stack { gap: 7px; padding: 8px; }
+    .list { gap: 8px; border: 0; }
+    .item { gap: 4px; padding: 9px; border: 1px solid #303b49; border-radius: 6px; background: #171d25; transition: background .12s ease, border-color .12s ease; }
+    .item:hover { border-color: #445266; background: #1d2530; }
+    .item.is-active { border-color: rgba(91, 157, 255, .45); background: var(--accent-soft); box-shadow: none; }
+    .item.is-checked { border-color: rgba(97, 197, 138, .45); background: rgba(97, 197, 138, .10); box-shadow: none; }
+    .item.is-active.is-checked { border-color: rgba(97, 197, 138, .65); background: rgba(97, 197, 138, .16); box-shadow: none; }
+    .item.has-no-data { border-color: rgba(238, 116, 109, .45); background: rgba(238, 116, 109, .08); box-shadow: none; }
+    .item.is-active.has-no-data { border-color: rgba(238, 116, 109, .7); background: rgba(238, 116, 109, .13); box-shadow: none; }
+    .filter-menu { position: relative; }
+    .filter-menu > button { width: 32px; height: 32px; min-height: 32px; padding: 0; }
+    .filter-popover { position: absolute; z-index: 10; top: calc(100% + 6px); right: 0; display: grid; width: 238px; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-head); box-shadow: 0 12px 30px rgba(0, 0, 0, .28); }
+    .filter-popover[hidden] { display: none; }
+    .filter-popover label { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 5px 6px; border-radius: 5px; color: var(--text); font-size: 12px; letter-spacing: 0; text-transform: none; }
+    .filter-popover label:hover { background: var(--surface); }
+    .filter-popover input { width: auto; min-height: 0; }
+    .item strong, .row-title { font-size: 12px; font-weight: 650; }
+    .meta { font-size: 11px; }
+    .editor-panel .panel-head { display: grid; }
+    .editor-panel .stack { padding: 14px; background: #10151b; }
+    .data-card { width: min(100%, 1080px); gap: 14px; margin: 0 auto; padding: 0; border: 0; border-radius: 10px; background: transparent; box-shadow: none; }
+    .editor-header { align-items: center; gap: 16px; padding: 15px 16px; border: 1px solid #334052; border-radius: 9px; background: linear-gradient(135deg, #1d2632, #171d25); }
+    .editor-title { gap: 10px; }
+    .editor-title .row-title { color: #f4f7fb; font-size: 17px; font-weight: 680; }
+    .editor-id { padding: 3px 6px; border: 1px solid #3b4859; border-radius: 4px; background: #111820; font-size: 11px; }
+    .editor-header .zone-tabs { padding-top: 9px; border-top: 1px solid rgba(145, 163, 185, .16); }
+    .editor-section { gap: 11px; padding: 14px; border: 1px solid #2f3b4a; border-radius: 9px; background: #171e27; }
+    .section-title { display: flex; align-items: center; gap: 9px; color: #aebdce; font-size: 10px; font-weight: 750; letter-spacing: .09em; }
+    .section-title::after { content: ""; height: 1px; flex: 1; background: #2d3948; }
+    .field { gap: 7px; }
+    .field > label, .service-head > label { color: #aeb8c6; font-size: 10px; font-weight: 700; letter-spacing: .06em; }
+    .editor-panel input, .editor-panel select, .editor-panel textarea { border-color: #354254; background: #111820; box-shadow: inset 0 1px 0 rgba(255,255,255,.025); }
+    .editor-panel input, .editor-panel select { min-height: 38px; }
+    .editor-panel textarea { min-height: 94px; padding: 10px; line-height: 1.45; resize: vertical; }
+    .editor-panel input:focus, .editor-panel select:focus, .editor-panel textarea:focus { border-color: #5b9dff; background: #131d28; }
+    .grid-2, .grid-3, .form-grid, .service-grid, .service-grid.three { gap: 10px; }
+    .service-grid, .service-grid.three { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .service-card, .sku-row, .product-row, .selected-row, .sku-region-row { border: 1px solid #344152; border-radius: 7px; background: #121922; }
+    .data-card { width: min(100%, 1120px); gap: 16px; }
+    .editor-panel .stack { padding: clamp(16px, 2vw, 24px); }
+    .editor-header { align-items: start; gap: 18px; padding: 18px 20px; }
+    .editor-title { gap: 11px; }
+    .editor-header .actions { align-self: center; }
+    .editor-section { gap: 10px; padding: 16px 18px; }
+    .section-title { min-height: 16px; }
+    .section-title::after { background: linear-gradient(90deg, #2d3948, transparent); }
+    .editor-section > .section-title + .service-grid,
+    .editor-section > .section-title + .form-grid { margin-top: -1px; }
+    .service-grid, .service-grid.three { grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); align-items: start; gap: 12px; }
+    .form-grid { align-items: start; gap: 12px; }
+    .service-card {
+      align-self: start;
+      min-height: 0;
+      gap: 10px;
+      padding: 12px;
+    }
+    .service-head { align-items: start; min-height: 20px; }
+    .service-head-actions { flex: 0 0 auto; margin-left: auto; gap: 7px; }
+    .service-card .toggle-row { margin-top: 0; padding-top: 8px; border-top: 1px solid rgba(145, 163, 185, .14); }
+    .field-card {
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      min-height: 116px;
+      padding: 14px;
+      border: 1px solid #344152;
+      border-radius: 7px;
+      background: #121922;
+    }
+    .field-card > label { color: #aeb8c6; font-size: 10px; font-weight: 700; letter-spacing: .06em; }
+    .field-card select,
+    .field-card input { margin-top: 0; }
+    .service-control { width: 100%; padding-top: 2px; }
+    .service-control select { width: 100%; }
+    .product-service-grid { align-items: stretch; }
+    .product-service-grid .service-card { align-self: stretch; height: 144px; }
+    .product-service-grid .service-card .toggle-row { margin-top: auto; }
+    .product-form-layout {
+      display: grid;
+      grid-template-columns: minmax(300px, .88fr) minmax(360px, 1.12fr);
+      align-items: start;
+      gap: 16px;
+    }
+    .product-form-layout .editor-section { min-width: 0; }
+    .product-service-stack { grid-template-columns: 1fr; gap: 10px; }
+    .product-service-stack .service-card { min-height: 0; height: auto; }
+    .product-service-stack .service-card.has-control { min-height: 0; }
+    .product-service-stack .service-control .field { gap: 5px; }
+    .product-paid-section { gap: 12px; }
+    .product-paid-section > .service-card { min-height: 0; }
+    .paid-rma-details {
+      display: grid;
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(145, 163, 185, .16);
+    }
+    .paid-rma-details[hidden] { display: none; }
+    .paid-rma-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .paid-rma-details .field { gap: 6px; }
+    .paid-rma-fees { display: grid; gap: 10px; }
+    .paid-rma-fees .head-row { margin-bottom: -2px; }
+    .exchange-card select { margin-top: auto; }
+    .exchange-comment-panel {
+      display: grid;
+      width: min(100%, 680px);
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid #344152;
+      border-radius: 7px;
+      background: #121922;
+    }
+    .exchange-comment-panel[hidden] { display: none; }
+    .exchange-comment-panel textarea { min-height: 96px; }
+    .paid-rma-grid { align-items: stretch; }
+    .paid-rma-grid > * { min-height: 116px; }
+    .note-section { gap: 8px; }
+    .note-large { min-height: 104px; }
+    .transport-fees-section { gap: 12px; }
+    .transport-fees-section > .field:first-of-type { max-width: 520px; }
+    .fee-row { align-items: end; gap: 10px; }
+    .fee-row button { min-height: 38px; }
+    .sku-editor-card { gap: 16px; }
+    .sku-editor-card .editor-section { gap: 12px; padding: 16px 18px; }
+    .sku-section-titlebar { min-height: 24px; }
+    .sku-section-titlebar .section-title { font-size: 12px; font-weight: 700; }
+    .sku-default-input { font-size: 14px; }
+    .sku-region-grid { gap: 10px; }
+    .sku-region-row { align-items: center; padding: 10px; }
+    .sku-country-row { padding: 10px; }
+    .sku-list-head { padding: 0 12px; }
+    .selected-row { min-height: 56px; padding: 10px 12px; }
+    .bundle-details-grid { grid-template-columns: minmax(180px, .72fr) minmax(0, 1.28fr); }
+    .bundle-product-section { gap: 12px; }
+    .bundle-search-field { position: relative; }
+    .bundle-search-field input { min-height: 42px; }
+    .bundle-results { max-height: 296px; overflow: auto; padding-right: 2px; }
+    .bundle-results .product-row { min-height: 54px; }
+    .service-head .checkline { font-size: 11px; }
+    .zone-tabs { gap: 6px; }
+    .zone-tab { min-height: 30px; padding: 5px 9px; border-radius: 6px; font-size: 11px; }
+    .country-zone-tabs .zone-tab:not(.is-active) { border-color: #354152; background: #151c25; color: #778496; opacity: .72; }
+    .country-zone-tabs .zone-tab:not(.is-active):hover { border-color: #52647a; background: #1b2531; color: #bdc9d8; opacity: 1; }
+    .sku-editor-card .editor-section { padding: 14px; }
+    .sku-region-grid { gap: 9px; }
+    .sku-region-row, .sku-country-row { padding: 9px; border-color: #334152; background: #121922; }
+    .sku-region-row input, .sku-country-row select, .sku-country-row input { min-height: 38px; }
+    .sku-list-head { padding: 0 10px; }
+    .fee-row { padding: 9px; border: 1px solid #344152; border-radius: 7px; background: #121922; }
+    .product-row, .selected-row { min-height: 48px; border-color: #344152; background: #121922; }
+    .product-row:hover, .selected-row:hover { border-color: #506177; background: #16202b; }
+    .empty { padding: 18px; border-color: #3b495b; background: #121922; }
+    .badge { min-height: 19px; padding: 1px 6px; border: 1px solid #3a4554; border-radius: 999px; background: #232c37; color: var(--muted); font-size: 10px; font-weight: 650; }
+    .badge.yes { border-color: rgba(97, 197, 138, .45); background: rgba(97, 197, 138, .14); color: #92ddb0; }
+    .badge.no { border-color: rgba(238, 116, 109, .42); background: rgba(238, 116, 109, .12); color: #f39b95; }
+    .badge.temp { border-color: rgba(229, 182, 94, .42); background: rgba(229, 182, 94, .12); color: #f1ca7e; }
+    .zone-tabs { gap: 4px; }
+    .zone-tab { min-height: 27px; padding: 4px 8px; border-radius: 5px; font-size: 11px; }
+    .zone-tab.is-active { box-shadow: none; }
+    .actions button.icon, button.icon { width: 30px; height: 30px; min-height: 30px; border-radius: 6px; }
+    button.icon.primary { background: var(--accent); color: #071425; }
+    .empty { border: 1px dashed #364150; border-radius: 6px; background: transparent; font-size: 12px; }
+
+    /* Editorial form language: clear object header, region context, then purpose-led cards. */
+    .editor-panel .stack { background: #0d131b; }
+    .editor-panel .data-card { width: min(100%, 1240px); gap: 18px; }
+    .editor-panel .editor-header {
+      padding: 20px 22px 16px;
+      border-color: #37465b;
+      background: linear-gradient(135deg, #202a38 0%, #18212d 72%);
+    }
+    .editor-panel .editor-title .row-title { font-size: 22px; letter-spacing: -.025em; }
+    .editor-panel .editor-id { color: #b7c4d6; background: #273246; font-size: 12px; font-weight: 700; }
+    .editor-panel .editor-header .actions { gap: 9px; }
+    .editor-panel .editor-header .danger { min-height: 38px; padding-inline: 14px; border-color: rgba(238, 116, 109, .72); background: rgba(85, 33, 37, .18); }
+    .editor-panel .editor-header .zone-tabs { width: 100%; gap: 10px; padding-top: 14px; }
+    .editor-panel .zone-tab { min-height: 38px; padding: 7px 13px; border-radius: 9px; font-size: 12px; }
+    .editor-panel .editor-section { padding: 18px; border-color: #3a485b; background: #1c2634; }
+    .editor-panel .section-title { color: #c2cede; font-size: 11px; }
+    .editor-panel .service-card, .editor-panel .field-card {
+      border-color: #40506a;
+      background: #151f2d;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+    }
+    .editor-panel .service-card { padding: 14px; }
+    .editor-panel .service-head { min-height: 28px; }
+    .editor-panel .toggle-row { min-height: 34px; }
+    .editor-panel .field-card { min-height: 126px; }
+
+    .product-editor-card .product-form-layout {
+      grid-template-columns: minmax(330px, .9fr) minmax(420px, 1.1fr);
+      gap: 20px;
+    }
+    .product-editor-card .product-services-section,
+    .product-editor-card .product-paid-section { min-height: 100%; }
+    .product-editor-card .product-service-stack { gap: 12px; }
+    .product-editor-card .product-service-stack .service-card {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      min-height: 82px;
+    }
+    .product-editor-card .product-service-stack .service-head { grid-column: 1 / -1; }
+    .product-editor-card .product-service-stack .toggle-row { grid-column: 1; grid-row: 2; }
+    .product-editor-card .product-service-stack .service-control { grid-column: 1 / -1; }
+    .product-editor-card .product-paid-section {
+      border-color: #4a5870;
+      background:
+        radial-gradient(circle at 1px 1px, rgba(159, 184, 226, .07) 1px, transparent 1.2px) 0 0 / 14px 14px,
+        linear-gradient(135deg, #263247, #1d2839);
+    }
+    .product-editor-card .product-paid-section > .service-card {
+      border-color: rgba(90, 142, 226, .45);
+      background: rgba(13, 23, 36, .52);
+    }
+    .product-editor-card .paid-rma-details { border-top-color: rgba(169, 192, 227, .22); }
+    .product-editor-card .paid-rma-fees .field:last-child {
+      padding: 12px;
+      border: 1px solid rgba(117, 142, 181, .38);
+      border-radius: 8px;
+      background: rgba(12, 21, 33, .28);
+    }
+    .product-editor-card .note-section { margin-top: 2px; }
+
+    .country-editor-card .service-grid,
+    .editor-form-card .grid-2 { gap: 14px; }
+    .country-editor-card .note-section,
+    .sku-editor-card .editor-section,
+    .bundle-editor-card .editor-section { background: #1a2431; }
+    .sku-editor-card .sku-region-row,
+    .sku-editor-card .sku-country-row,
+    .bundle-editor-card .selected-row,
+    .bundle-editor-card .product-row { border-color: #40506a; background: #151f2d; }
+
+    /* Reference composition: an unobstructed record header followed by two equal work areas. */
+    .editor-panel .stack { padding: 32px; background: #080f20; }
+    .editor-panel .data-card { width: min(100%, 1560px); gap: 28px; }
+    .editor-panel .editor-header {
+      align-items: start;
+      padding: 0 0 26px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+    .editor-panel .editor-title { gap: 28px; }
+    .editor-panel .editor-title .row-title { color: #dbe4ff; font-size: 29px; font-weight: 700; line-height: 1; }
+    .editor-panel .editor-id { padding: 5px 10px; border-color: #3b4760; border-radius: 4px; background: #29334a; color: #bac5df; font-size: 13px; }
+    .editor-panel .editor-header .actions { padding-top: 1px; }
+    .editor-panel .editor-header .danger {
+      min-height: 48px;
+      padding: 10px 18px;
+      border: 2px solid rgba(238, 116, 109, .82);
+      border-radius: 4px;
+      background: transparent;
+      color: #ffaaa4;
+      font-size: 15px;
+      letter-spacing: .05em;
+    }
+    .editor-panel .editor-header .zone-tabs { gap: 12px; padding: 0; border: 0; }
+    .editor-panel .zone-tab {
+      min-height: 52px;
+      padding: 9px 20px;
+      border: 2px solid #3d485d;
+      border-radius: 18px;
+      background: #151d30;
+      color: #c2cada;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 15px;
+      font-weight: 650;
+    }
+    .editor-panel .zone-tab.is-active { border-color: #91b7ff; background: #202b43; color: #aec8ff; }
+    .editor-panel .editor-section {
+      padding: 28px;
+      border: 1px solid #44516a;
+      border-radius: 10px;
+      background: #202b3e;
+    }
+    .editor-panel .section-title {
+      min-height: 32px;
+      color: #d2dcf5;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      letter-spacing: .1em;
+    }
+    .editor-panel .section-title::after { background: #465169; }
+    .editor-panel .service-card, .editor-panel .field-card {
+      border-color: #40506a;
+      border-radius: 6px;
+      background: #151e30;
+      box-shadow: none;
+    }
+    .editor-panel .service-card { padding: 18px; }
+    .editor-panel .field > label, .editor-panel .service-head > label, .editor-panel .field-card > label {
+      color: #aeb8ce;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+    }
+    .editor-panel input, .editor-panel select, .editor-panel textarea { border-color: #3e4b63; border-radius: 5px; background: #091225; color: #dce6ff; }
+    .editor-panel input, .editor-panel select { min-height: 48px; font-size: 15px; }
+    .editor-panel textarea { min-height: 112px; font-size: 15px; }
+
+    .product-editor-card .product-form-layout {
+      grid-template-columns: minmax(340px, 1fr) minmax(380px, 1fr);
+      gap: 34px;
+      align-items: stretch;
+    }
+    .product-editor-card .product-services-section,
+    .product-editor-card .product-paid-section { padding: 28px; }
+    .product-editor-card .product-service-stack { gap: 18px; }
+    .product-editor-card .product-service-stack .service-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      min-height: 96px;
+      padding: 18px 20px;
+    }
+    .product-editor-card .product-service-stack .service-head { grid-column: 1 / -1; }
+    .product-editor-card .product-service-stack .toggle-row { grid-column: 2; grid-row: 1; align-self: center; }
+    .product-editor-card .product-service-stack .service-control { grid-column: 1 / -1; }
+    .product-editor-card .product-paid-section {
+      border-color: #4a5770;
+      background:
+        radial-gradient(rgba(161, 181, 219, .1) .7px, transparent .8px) 0 0 / 18px 18px,
+        #2a354a;
+    }
+    .product-editor-card .product-paid-section > .service-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      padding: 14px 0 18px;
+      border: 0;
+      border-bottom: 1px solid #4a5670;
+      border-radius: 0;
+      background: transparent;
+    }
+    .product-editor-card .product-paid-section > .service-card .service-head { grid-column: 1; grid-row: 1; }
+    .product-editor-card .product-paid-section > .service-card .toggle-row { grid-column: 2; grid-row: 1; }
+    .product-editor-card .paid-rma-details { gap: 20px; padding-top: 22px; border: 0; }
+    .product-editor-card .paid-rma-fields { gap: 16px; }
+    .product-editor-card .paid-rma-fees { gap: 16px; }
+    .product-editor-card .paid-rma-fees .field:last-child { padding: 0; border: 0; background: transparent; }
+    .product-editor-card .fee-row { border-color: #40506a; border-radius: 0; background: #10192b; }
+
+    .country-editor-card .editor-section,
+    .sku-editor-card .editor-section,
+    .bundle-editor-card .editor-section { background: #202b3e; }
+
+    .view.home-view { display: none; place-items: center; overflow: auto; }
+    .view.home-view.is-active { display: grid; }
+    .home-card { display: grid; width: min(100%, 900px); gap: 18px; padding: 26px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+    .home-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .home-stat { padding: 13px; border: 1px solid #303b49; border-radius: 7px; background: #171d25; }
+    .home-stat strong { display: block; color: var(--text); font-size: 24px; font-weight: 650; line-height: 1; }
+    .home-stat span { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; }
+    .home-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .home-summary > div { padding: 11px 12px; border: 1px solid #2d3744; border-radius: 7px; background: #141a21; }
+    .home-summary strong { display: block; color: var(--text); font-size: 15px; }
+    .home-summary span { color: var(--muted); font-size: 11px; }
+    .home-details { display: grid; gap: 8px; }
+    .home-detail { display: grid; grid-template-columns: minmax(150px, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #303b49; border-radius: 7px; background: #171d25; }
+    .home-detail strong { font-size: 13px; font-weight: 650; }
+    .home-detail span { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .home-detail .attention { color: #f1ca7e; }
+    .home-dates { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 2px; color: var(--muted); font-size: 11px; }
+    .home-dates strong { color: #aebdce; font-weight: 650; }
+    .settings-modal { width: min(440px, calc(100vw - 32px)); padding: 0; border: 1px solid #3a4656; border-radius: 10px; background: #171d25; color: var(--text); box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
+    .settings-modal::backdrop { background: rgba(6, 9, 13, .7); }
+    .settings-content { display: grid; gap: 14px; padding: 18px; }
+    .settings-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .settings-header h2 { color: var(--text); font-size: 16px; text-transform: none; }
+    .settings-content > p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .reset-list { display: grid; gap: 7px; }
+    .reset-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid #303b49; border-radius: 6px; background: #121820; }
+    .reset-row span { color: var(--muted); font-size: 12px; }
+    @media (max-width: 980px) {
+      .topbar { min-height: 52px; padding: 0 9px; }
+      .top-actions button span { display: none; }
+      .toolbar { padding: 0 8px; overflow-x: auto; }
+      .split { grid-template-columns: 1fr; gap: 8px; }
+      .panel { min-height: 300px; }
+      .editor-panel .stack { padding: 10px; }
+      .editor-header { align-items: start; padding: 12px; }
+      .service-grid, .service-grid.three, .form-grid, .grid-2 { grid-template-columns: 1fr; }
+      .product-form-layout, .paid-rma-fields { grid-template-columns: 1fr; }
+      .bundle-details-grid { grid-template-columns: 1fr; }
+      .home-stats, .home-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .home-detail { grid-template-columns: 1fr; gap: 5px; }
+    }
+  </style>
+  <link rel="stylesheet" href="rework.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="topbar">
+        <h1><span>DBmanager</span><span class="version-badge" title="Version de l’application">v1.0.0</span></h1>
+        <div class="status" id="status" hidden aria-live="polite"></div>
+        <div class="top-actions">
+          <input id="importDb" type="file" accept="application/json,.json" hidden>
+          <button type="button" class="toolbar-action icon-action" id="settingsButton" title="Application settings" aria-label="Application settings"><img src="../icons/icons8-paramètres-70.png" alt=""></button>
+          <button type="button" class="toolbar-action icon-action" id="importButton" title="Open database" aria-label="Open database"><img src="../icons/icons8-dossier-ouvert-70.png" alt=""></button>
+          <button type="button" class="toolbar-action icon-action" id="downloadDb" title="Save as file" aria-label="Save as file"><img src="../icons/icons8-sauvegarder-70.png" alt=""></button>
+          <button type="button" class="primary copy-db-action" id="exportDb" title="Copy the database to the clipboard">Copy DB</button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <nav class="tabs" role="tablist" aria-label="Vues">
+          <button class="tab" id="tab-home" role="tab" type="button" data-view="home" aria-controls="view-home" aria-selected="true"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM9 21v-6h6v6"/></svg>Home</button>
+          <button class="tab" id="tab-wws" role="tab" type="button" data-view="wws" aria-controls="view-wws" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM9 21v-6h6v6"/></svg>Countries</button>
+          <button class="tab" id="tab-ga" role="tab" type="button" data-view="ga" aria-controls="view-ga" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM8 7V4h8v3M4 12h16"/></svg>Products</button>
+          <button class="tab" id="tab-bundles" role="tab" type="button" data-view="bundles" aria-controls="view-bundles" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>Bundles</button>
+          <button class="tab" id="tab-sku" role="tab" type="button" data-view="sku" aria-controls="view-sku" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>SKUs</button>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="view is-active home-view" id="view-home" role="tabpanel" aria-labelledby="tab-home">
+        <div class="home-card">
+          <div class="home-stats" id="homeStats"></div>
+          <div class="home-summary" id="homeSummary"></div>
+          <div class="home-details" id="homeDetails"></div>
+          <div class="home-dates" id="homeDates"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-wws" role="tabpanel" aria-labelledby="tab-wws">
+        <div class="split">
+          <aside class="panel">
+            <div class="panel-head">
+              <div class="head-row">
+                <div class="list-heading"><h2>CRM countries</h2><select id="countrySort" class="list-sort-select" aria-label="Sort countries"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option></select></div>
+                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="countries" title="Filter countries" aria-label="Filter countries" aria-expanded="false" aria-controls="countryFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="countryFilterPopover" data-list-filter-popover="countries" hidden><label><input type="checkbox" data-list-filter="countries:validated"> Checked</label><label><input type="checkbox" data-list-filter="countries:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="countries:empty"> No data</label></div></div><button type="button" class="icon primary" id="newCountry" title="Create country" aria-label="Create country"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+              </div>
+              <div class="sort-row">
+                <input id="countrySearch" type="search" autocomplete="off" placeholder="Search country, ID, region...">
+              </div>
+            </div>
+            <div class="stack"><div class="list" id="countryList"></div></div>
+          </aside>
+          <section class="panel editor-panel">
+            <div class="panel-head"><h2>Country editor</h2></div>
+            <div class="stack" id="countryEditor"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-ga" role="tabpanel" aria-labelledby="tab-ga">
+        <div class="split">
+          <aside class="panel">
+            <div class="panel-head">
+              <div class="head-row">
+                <div class="list-heading"><h2>GA products</h2><select id="productSort" class="list-sort-select" aria-label="Sort products"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option><option value="data">Data first</option></select></div>
+                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="products" title="Filter products" aria-label="Filter products" aria-expanded="false" aria-controls="productFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="productFilterPopover" data-list-filter-popover="products" hidden><label><input type="checkbox" data-list-filter="products:validated"> Checked</label><label><input type="checkbox" data-list-filter="products:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="products:empty"> No data</label></div></div><button type="button" class="icon primary" id="newProduct" title="Create product" aria-label="Create product"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+              </div>
+              <div class="sort-row">
+                <input id="productSearch" type="search" autocomplete="off" placeholder="Search product, ID, CRM...">
+              </div>
+            </div>
+            <div class="stack"><div class="list" id="productList"></div></div>
+          </aside>
+          <section class="panel editor-panel">
+            <div class="panel-head"><h2>GA editor</h2></div>
+            <div class="stack" id="productEditor"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-sku" role="tabpanel" aria-labelledby="tab-sku">
+        <div class="split">
+          <aside class="panel">
+            <div class="panel-head">
+              <div class="head-row">
+                <div class="list-heading"><h2>SKU products</h2><select id="skuProductSort" class="list-sort-select" aria-label="Sort SKU products"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option></select></div>
+                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="skus" title="Filter SKUs" aria-label="Filter SKUs" aria-expanded="false" aria-controls="skuFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="skuFilterPopover" data-list-filter-popover="skus" hidden><label><input type="checkbox" data-list-filter="skus:validated"> Checked</label><label><input type="checkbox" data-list-filter="skus:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="skus:empty"> No data</label></div></div><button type="button" class="icon primary" id="newSkuProduct" title="Create SKU product" aria-label="Create SKU product"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+              </div>
+              <div class="sort-row">
+                <input id="skuProductSearch" type="search" autocomplete="off" placeholder="Search product or SKU...">
+              </div>
+            </div>
+            <div class="stack"><div class="list" id="skuProductList"></div></div>
+          </aside>
+          <section class="panel editor-panel">
+            <div class="panel-head"><h2>SKU editor</h2></div>
+            <div class="stack" id="skuEditor"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-bundles" role="tabpanel" aria-labelledby="tab-bundles">
+        <div class="split">
+          <aside class="panel">
+            <div class="panel-head">
+              <div class="head-row">
+                <div class="list-heading"><h2>Bundles</h2><select id="bundleSort" class="list-sort-select" aria-label="Sort bundles"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option></select></div>
+                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="bundles" title="Filter bundles" aria-label="Filter bundles" aria-expanded="false" aria-controls="bundleFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="bundleFilterPopover" data-list-filter-popover="bundles" hidden><label><input type="checkbox" data-list-filter="bundles:validated"> Checked</label><label><input type="checkbox" data-list-filter="bundles:unvalidated"> Not checked</label></div></div><button type="button" class="icon primary" id="newBundle" title="Create bundle" aria-label="Create bundle"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+              </div>
+              <div class="sort-row">
+                <input id="bundleSearch" type="search" autocomplete="off" placeholder="Search bundle...">
+              </div>
+            </div>
+            <div class="stack"><div class="list" id="bundleList"></div></div>
+          </aside>
+          <section class="panel editor-panel">
+            <div class="panel-head"><h2>Bundle editor</h2></div>
+            <div class="stack" id="bundleEditor"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="settings-modal" id="settingsModal" aria-labelledby="settingsTitle">
+    <div class="settings-content">
+      <div class="settings-header">
+        <h2 id="settingsTitle">Check settings</h2>
+        <button type="button" class="icon" id="closeSettings" aria-label="Close settings" title="Close">×</button>
+      </div>
+      <p>Clear checks independently for each section. This action can be saved with the database.</p>
+      <div class="reset-list">
+        <div class="reset-row"><span>Countries</span><button type="button" data-reset-validation="countries">Clear checks</button></div>
+        <div class="reset-row"><span>Products</span><button type="button" data-reset-validation="products">Clear checks</button></div>
+        <div class="reset-row"><span>SKUs</span><button type="button" data-reset-validation="skus">Clear checks</button></div>
+        <div class="reset-row"><span>Bundles</span><button type="button" data-reset-validation="bundles">Clear checks</button></div>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "cairmdb-manager-draft";
+      const RMA_LOCATION_IDS = ["L001", "L002", "L003", "L004"];
+      const ZONES = ["europe", "usa", "canada", "hong_kong_taiwan", "australia", "rest_of_world"];
+      const STATUS = ["yes", "no", "temp"];
+      const EXCHANGE_STATUS = ["retailer", "us", "temp", "no"];
+      const state = { db: null, sourceDb: null, activeView: "home", selectedCountryId: "", selectedProductId: "", selectedSkuProductId: "", selectedBundleId: "", previousCountryId: "", previousProductId: "", previousSkuProductId: "", previousBundleId: "", selectedZone: "europe", countrySort: "alpha", productSort: "alpha", skuProductSort: "alpha", bundleSort: "alpha", listFilters: { countries: { validated: false, unvalidated: false, empty: false }, products: { validated: false, unvalidated: false, empty: false }, skus: { validated: false, unvalidated: false, empty: false }, bundles: { validated: false, unvalidated: false } }, dirty: false };
+      let copyFeedbackTimer = 0;
+      const $ = (id) => document.getElementById(id);
+      const els = {
+        status: $("status"),
+        tabs: Array.from(document.querySelectorAll(".tab")),
+        views: Array.from(document.querySelectorAll(".view")),
+        importDb: $("importDb"),
+        importButton: $("importButton"),
+        settingsButton: $("settingsButton"),
+        settingsModal: $("settingsModal"),
+        closeSettings: $("closeSettings"),
+        resetValidationButtons: Array.from(document.querySelectorAll("[data-reset-validation]")),
+        downloadDb: $("downloadDb"),
+        exportDb: $("exportDb"),
+        listFilterButtons: Array.from(document.querySelectorAll("[data-list-filter-button]")),
+        listFilterPopovers: Array.from(document.querySelectorAll("[data-list-filter-popover]")),
+        listFilterInputs: Array.from(document.querySelectorAll("[data-list-filter]")),
+        countrySearch: $("countrySearch"),
+        countrySort: $("countrySort"),
+        countryList: $("countryList"),
+        countryEditor: $("countryEditor"),
+        newCountry: $("newCountry"),
+        productSearch: $("productSearch"),
+        productSort: $("productSort"),
+        productList: $("productList"),
+        productEditor: $("productEditor"),
+        newProduct: $("newProduct"),
+        newSkuProduct: $("newSkuProduct"),
+        skuProductSearch: $("skuProductSearch"),
+        skuProductSort: $("skuProductSort"),
+        skuProductList: $("skuProductList"),
+        skuEditor: $("skuEditor"),
+        bundleSearch: $("bundleSearch"),
+        bundleSort: $("bundleSort"),
+        bundleList: $("bundleList"),
+        bundleEditor: $("bundleEditor"),
+        newBundle: $("newBundle"),
+        saveBundle: null,
+        deleteBundle: null
+      };
+
+      const text = (value) => String(value == null ? "" : value).trim();
+      const clone = (value) => structuredClone(value);
+      const normalize = (value) => text(value).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+      const esc = (value) => String(value == null ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      const labels = { yes: "Yes", no: "No", temp: "Temporary", us: "US", retailer: "Retailer", europe: "Europe", usa: "USA", canada: "Canada", hong_kong_taiwan: "Hong Kong / Taiwan", australia: "Australia", rest_of_world: "Rest of world", check_retailer: "Check with retailer" };
+      const label = (value) => labels[value] || text(value).replace(/_/g, " ");
+      const optionHtml = (values, current) => values.map((value) => `<option value="${esc(value)}"${value === current ? " selected" : ""}>${esc(label(value))}</option>`).join("");
+      const exchangeOptionHtml = (current) => {
+        const exchangeLabels = { retailer: "Retailer", us: "Us", temp: "Temp", no: "No" };
+        return EXCHANGE_STATUS.map((value) => `<option value="${esc(value)}"${value === current ? " selected" : ""}>${esc(exchangeLabels[value])}</option>`).join("");
+      };
+      const ids = (scope) => state.db && state.db.ids && state.db.ids[scope] ? state.db.ids[scope] : {};
+
+      function sortByMode(rows, mode) {
+        return [...rows].sort((a, b) => {
+          if (mode === "id") {
+            return a.id.localeCompare(b.id, undefined, { numeric: true });
+          }
+          if (mode === "data") {
+            const aHasData = a.record ? 0 : 1;
+            const bHasData = b.record ? 0 : 1;
+            if (aHasData !== bHasData) return aHasData - bHasData;
+          }
+          return a.name.localeCompare(b.name);
+        });
+      }
+
+      function regionClass(zone) {
+        return `region-${text(zone) || "rest_of_world"}`;
+      }
+
+      function warrantyOptions(current) {
+        return [1, 2, 3, 4, 5].map((value) => `<option value="${value}"${String(current) === String(value) ? " selected" : ""}>${value}</option>`).join("");
+      }
+
+      function defaultCountryRecord() {
+        return { ga_zone: "rest_of_world", rma: { status: "no", warranty_duration: "check_retailer" }, spare_parts: { status: "no", warranty_duration: "check_retailer" }, note: "" };
+      }
+
+      function reconcileCountryRecords(db) {
+        const countryIds = db.ids && db.ids.countries ? db.ids.countries : {};
+        const validIds = new Set(Object.keys(countryIds));
+        let changed = false;
+        db.countries ||= {};
+        Object.keys(db.countries).forEach((id) => {
+          if (validIds.has(id)) return;
+          delete db.countries[id];
+          changed = true;
+        });
+        const checkedCountries = db.checked && db.checked.countries;
+        if (checkedCountries) {
+          Object.keys(checkedCountries).forEach((id) => {
+            if (validIds.has(id)) return;
+            delete checkedCountries[id];
+            changed = true;
+          });
+        }
+        return changed;
+      }
+
+      function countries() {
+        const rows = Object.entries(ids("countries")).map(([id, meta]) => {
+          const sourceRecord = state.db.countries[id];
+          const record = sourceRecord && typeof sourceRecord === "object" && !Array.isArray(sourceRecord)
+            ? sourceRecord
+            : defaultCountryRecord();
+          return { id, name: text(meta.name || meta.label_en || meta.label_fr) || id, aliases: Array.isArray(meta.aliases) ? meta.aliases : [], record, dataState: getCountryDataState(sourceRecord) };
+        });
+        return sortByMode(rows, state.countrySort);
+      }
+
+      function getCountryDataState(record) {
+        if (!record || typeof record !== "object" || Array.isArray(record)) return "empty";
+        const serviceIsComplete = (service) => service && typeof service === "object" && STATUS.includes(service.status) && (service.warranty_duration === "check_retailer" || [1, 2, 3, 4, 5].includes(Number(service.warranty_duration)));
+        return ZONES.includes(record.ga_zone) && serviceIsComplete(record.rma) && serviceIsComplete(record.spare_parts)
+          ? "complete"
+          : "partial";
+      }
+
+      function matchesListFilters(scope, id, { empty = false } = {}) {
+        const active = Object.entries(state.listFilters[scope] || {}).filter(([, enabled]) => enabled).map(([name]) => name);
+        if (!active.length) return true;
+        return active.some((filter) => (filter === "validated" && isChecked(scope, id)) || (filter === "unvalidated" && !isChecked(scope, id)) || (filter === "empty" && empty));
+      }
+
+      function products() {
+        const rows = Object.entries(ids("products")).map(([id, meta]) => ({
+          id,
+          name: text(meta.name) || id,
+          crmId: text(meta.crm_id),
+          aliases: Array.isArray(meta.aliases) ? meta.aliases.map(text).filter(Boolean) : [],
+          record: hasProductGaData(state.db.products[id]) ? state.db.products[id] : null
+        }));
+        return sortByMode(rows, state.productSort);
+      }
+
+      function hasProductGaData(record) {
+        return !!(
+          record &&
+          typeof record === "object" &&
+          !Array.isArray(record) &&
+          Object.keys(record).some((key) => key !== "skus")
+        );
+      }
+
+      function productHasNote(record) {
+        if (!record) return false;
+        if (text(record.note)) return true;
+        return Object.values(record.zones || {}).some((zone) => text(zone && zone.note));
+      }
+
+      function normalizeSkuValues(value) {
+        const values = Array.isArray(value) ? value : String(value == null ? "" : value).split(/\r?\n/);
+        return Array.from(new Set(values.map(text).filter(Boolean)));
+      }
+
+      function readProductSkuData(record) {
+        const raw = record && record.skus && typeof record.skus === "object" && !Array.isArray(record.skus) ? record.skus : {};
+        const canonical = Object.prototype.hasOwnProperty.call(raw, "global") || Object.prototype.hasOwnProperty.call(raw, "regions") || Object.prototype.hasOwnProperty.call(raw, "countries");
+        const countries = canonical && raw.countries && typeof raw.countries === "object" && !Array.isArray(raw.countries)
+          ? raw.countries
+          : canonical
+            ? {}
+            : raw;
+        const regions = canonical && raw.regions && typeof raw.regions === "object" && !Array.isArray(raw.regions)
+          ? raw.regions
+          : {};
+        return { global: canonical ? text(raw.global) : "", regions, countries };
+      }
+
+      function productSkuEntries(record) {
+        return Object.entries(readProductSkuData(record).countries)
+          .map(([countryId, value]) => [countryId, normalizeSkuValues(value).slice(0, 1)])
+          .filter(([countryId, values]) => countryId && values.length);
+      }
+
+      function productSkuRows(record) {
+        return Object.entries(readProductSkuData(record).countries).map(([countryId, value]) => [countryId, normalizeSkuValues(value).slice(0, 1)]).filter(([countryId]) => countryId);
+      }
+
+      function productSkuRegionRows(record) {
+        const regions = readProductSkuData(record).regions;
+        return ZONES.map((regionId) => [regionId, normalizeSkuValues(regions[regionId]).slice(0, 1)]);
+      }
+
+      function skuProducts() {
+        const rows = Object.entries(ids("products"))
+          .map(([id, meta]) => ({
+            id,
+            name: text(meta.name) || id,
+            crmId: text(meta.crm_id),
+            aliases: Array.isArray(meta.aliases) ? meta.aliases.map(text).filter(Boolean) : [],
+            record: state.db.products[id] || null
+          }));
+        return sortByMode(rows, state.skuProductSort);
+      }
+
+      function cleanProductSkus(product) {
+        if (!product) return;
+        const data = readProductSkuData(product);
+        const countries = {};
+        const regions = {};
+        Object.entries(data.countries).forEach(([countryId, value]) => {
+          const values = normalizeSkuValues(value);
+          if (countryId && values.length) countries[countryId] = values[0];
+        });
+        Object.entries(data.regions).forEach(([regionId, value]) => {
+          const values = normalizeSkuValues(value);
+          if (ZONES.includes(regionId) && values.length) regions[regionId] = values[0];
+        });
+        if (!data.global && !Object.keys(regions).length && !Object.keys(countries).length) {
+          delete product.skus;
+          return;
+        }
+        product.skus = {};
+        if (data.global) product.skus.global = data.global;
+        if (Object.keys(regions).length) product.skus.regions = regions;
+        if (Object.keys(countries).length) product.skus.countries = countries;
+      }
+
+      function ensureProductSkus(id) {
+        if (!ids("products")[id]) return null;
+        const product = state.db.products[id] ||= {};
+        const data = readProductSkuData(product);
+        product.skus = { global: data.global, regions: { ...data.regions }, countries: { ...data.countries } };
+        return product.skus;
+      }
+
+      function checkedStore(scope) {
+        state.db.checked ||= {};
+        state.db.checked[scope] ||= {};
+        return state.db.checked[scope];
+      }
+
+      function isChecked(scope, id) {
+        return !!(state.db.checked && state.db.checked[scope] && state.db.checked[scope][id]);
+      }
+
+      function checkedClass(scope, id) {
+        return isChecked(scope, id) ? " is-checked" : "";
+      }
+
+      function verifiedCheckbox(scope, id, labelText = "Checked") {
+        return `<label class="checkline"><input type="checkbox" data-verified="${esc(scope)}" data-verified-id="${esc(id)}" ${isChecked(scope, id) ? "checked" : ""}> ${esc(labelText)}</label>`;
+      }
+
+      function bindVerifiedCheckbox(root, afterChange) {
+        root.querySelectorAll("[data-verified]").forEach((input) => {
+          input.addEventListener("change", () => {
+            const store = checkedStore(input.dataset.verified);
+            if (input.checked) store[input.dataset.verifiedId] = true;
+            else delete store[input.dataset.verifiedId];
+            markDirty();
+            afterChange();
+          });
+        });
+      }
+
+      function bundles() {
+        const rows = Object.entries(ids("bundles")).map(([id, meta]) => ({
+          id,
+          name: text(meta.name) || id,
+          products: Array.isArray(meta.products) ? meta.products : [],
+          aliases: Array.isArray(meta.aliases) ? meta.aliases : [],
+          notes: text(meta.notes)
+        }));
+        return sortByMode(rows, state.bundleSort);
+      }
+
+      function countryName(id) {
+        const meta = ids("countries")[id];
+        return text(meta && (meta.name || meta.label_en || meta.label_fr)) || id;
+      }
+
+      function productName(id) {
+        const meta = ids("products")[id];
+        return text(meta && meta.name) || id;
+      }
+
+      function nextScopedId(scope, prefix) {
+        const used = new Set(Object.keys(ids(scope)));
+        let index = used.size + 1;
+        let id = "";
+        do {
+          id = `${prefix}${String(index).padStart(3, "0")}`;
+          index += 1;
+        } while (used.has(id));
+        return id;
+      }
+
+      function setServiceStatus(target, status, active) {
+        target.status = active ? "yes" : "no";
+        if (status === "temp") {
+          target.status = "temp";
+        }
+      }
+
+      function serviceToggleHtml(name, status) {
+        const active = status === "yes";
+        const stateLabel = active ? "Yes" : "No";
+        return `
+          <div class="toggle-row is-${esc(status)}">
+            <label class="switch">
+              <input type="checkbox" data-service-toggle ${active ? "checked" : ""}>
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-state ${esc(status)}">${esc(stateLabel)}</span>
+          </div>
+        `;
+      }
+
+      function serviceCardHtml(name, title, status, control = "") {
+        return `
+          <div class="service-card${control ? " has-control" : ""}" data-service="${esc(name)}">
+            <div class="service-head">
+              <label>${esc(title)}</label>
+              <div class="service-head-actions">
+                ${serviceToggleHtml(name, status)}
+                <label class="checkline temporary-check"><input type="checkbox" data-service-temp ${status === "temp" ? "checked" : ""}> Temporary</label>
+              </div>
+            </div>
+            ${control ? `<div class="service-control">${control}</div>` : ""}
+          </div>
+        `;
+      }
+
+      function bindServiceToggle(root, getTarget, afterChange) {
+        root.querySelectorAll("[data-service]").forEach((row) => {
+          const name = row.dataset.service;
+          const toggle = row.querySelector("[data-service-toggle]");
+          const temp = row.querySelector("[data-service-temp]");
+          const update = () => {
+            setServiceStatus(getTarget(name), temp.checked ? "temp" : "", toggle.checked);
+            afterChange();
+          };
+          toggle.addEventListener("change", () => {
+            if (toggle.checked) temp.checked = false;
+            update();
+          });
+          temp.addEventListener("change", update);
+        });
+      }
+
+      function markDirty() {
+        state.dirty = true;
+        state.db.updatedAt = new Date().toISOString();
+        persistDraft();
+        renderStatus();
+      }
+
+      function persistDraft() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.db));
+          return true;
+        } catch (error) {
+          console.warn("Unable to save the CairmDB draft.", error);
+          return false;
+        }
+      }
+
+      function ensureCountry(id) {
+        if (!state.db.countries[id] || typeof state.db.countries[id] !== "object" || Array.isArray(state.db.countries[id])) {
+          state.db.countries[id] = defaultCountryRecord();
+        }
+        if (!state.db.countries[id].rma || typeof state.db.countries[id].rma !== "object") state.db.countries[id].rma = {};
+        if (!state.db.countries[id].spare_parts || typeof state.db.countries[id].spare_parts !== "object") state.db.countries[id].spare_parts = {};
+        return state.db.countries[id];
+      }
+
+      function defaultZone() {
+        return { rma: { status: "no", location: "", paid: { location: "", price: null }, default_transport_fee: null, extra_transport_fees: {} }, spare_parts: { status: "no" }, exchange: { status: "" }, note: "" };
+      }
+
+      function ensureProduct(id) {
+        if (!state.db.products[id] || typeof state.db.products[id] !== "object" || Array.isArray(state.db.products[id])) {
+          state.db.products[id] = { zones: {}, note: "" };
+        }
+        if (!state.db.products[id].zones || typeof state.db.products[id].zones !== "object") state.db.products[id].zones = {};
+        return state.db.products[id];
+      }
+
+      function ensureProductZone(id, zoneName) {
+        const product = ensureProduct(id);
+        if (!product.zones[zoneName] || typeof product.zones[zoneName] !== "object" || Array.isArray(product.zones[zoneName])) {
+          product.zones[zoneName] = defaultZone();
+        }
+        const zone = product.zones[zoneName];
+        if (!zone.rma || typeof zone.rma !== "object") zone.rma = {};
+        if (!zone.rma.paid || typeof zone.rma.paid !== "object") zone.rma.paid = { location: "", price: null };
+        if (!zone.rma.extra_transport_fees || typeof zone.rma.extra_transport_fees !== "object") zone.rma.extra_transport_fees = {};
+        if (!zone.spare_parts || typeof zone.spare_parts !== "object") zone.spare_parts = {};
+        if (!zone.exchange || typeof zone.exchange !== "object") zone.exchange = {};
+        return product.zones[zoneName];
+      }
+
+      function zoneForDisplay(zone) {
+        const fallback = defaultZone();
+        return {
+          ...fallback,
+          ...(zone || {}),
+          rma: {
+            ...fallback.rma,
+            ...((zone && zone.rma) || {}),
+            paid: { ...fallback.rma.paid, ...((zone && zone.rma && zone.rma.paid) || {}) },
+            extra_transport_fees: { ...((zone && zone.rma && zone.rma.extra_transport_fees) || {}) }
+          },
+          spare_parts: { ...fallback.spare_parts, ...((zone && zone.spare_parts) || {}) },
+          exchange: { ...fallback.exchange, ...((zone && zone.exchange) || {}) }
+        };
+      }
+
+      function nextBundleId() {
+        const used = new Set(Object.keys(ids("bundles")));
+        let index = used.size + 1;
+        let id = "";
+        do {
+          id = `B${String(index).padStart(3, "0")}`;
+          index += 1;
+        } while (used.has(id));
+        return id;
+      }
+
+      function addCountry() {
+        if (!state.db) return;
+        state.previousCountryId = state.selectedCountryId;
+        const id = nextScopedId("countries", "C");
+        const name = `New country ${id}`;
+        state.db.ids.countries[id] = { name, label_fr: name, aliases: [name], _source: { file: "cairmdb-manager" } };
+        state.db.countries[id] = {
+          ga_zone: "rest_of_world",
+          rma: { status: "no", warranty_duration: "check_retailer" },
+          spare_parts: { status: "no", warranty_duration: 2 },
+          note: ""
+        };
+        state.selectedCountryId = id;
+        markDirty();
+        renderWws();
+      }
+
+      function addProduct() {
+        if (!state.db) return;
+        state.previousProductId = state.selectedProductId;
+        const id = nextScopedId("products", "P");
+        const name = `New product ${id}`;
+        state.db.ids.products[id] = { name, aliases: [name], crm_id: "", _source: { file: "cairmdb-manager" } };
+        ensureProduct(id);
+        state.selectedProductId = id;
+        markDirty();
+        renderGa();
+      }
+
+      function addSkuProduct() {
+        if (!state.db) return;
+        state.previousProductId = state.selectedProductId;
+        state.previousSkuProductId = state.selectedSkuProductId;
+        const id = nextScopedId("products", "P");
+        const name = `New SKU product ${id}`;
+        state.db.ids.products[id] = { name, aliases: [name], crm_id: "", _source: { file: "cairmdb-manager" } };
+        ensureProduct(id);
+        state.selectedProductId = id;
+        state.selectedSkuProductId = id;
+        markDirty();
+        setView("sku");
+        renderGa();
+        renderSkuView();
+      }
+
+      function deleteProduct(id) {
+        if (!id || !ids("products")[id]) return;
+        const name = productName(id);
+        if (!confirm(`Delete product ${name} (${id})?`)) return;
+        delete state.db.ids.products[id];
+        delete state.db.products[id];
+        if (state.db.checked && state.db.checked.products) delete state.db.checked.products[id];
+        if (state.db.checked && state.db.checked.skus) delete state.db.checked.skus[id];
+        Object.values(ids("bundles")).forEach((bundle) => {
+          if (Array.isArray(bundle.products)) {
+            bundle.products = bundle.products.filter((productId) => productId !== id);
+          }
+        });
+        syncActiveBundles();
+        state.selectedProductId = ids("products")[state.previousProductId] ? state.previousProductId : products()[0] ? products()[0].id : "";
+        state.selectedSkuProductId = ids("products")[state.previousSkuProductId] ? state.previousSkuProductId : skuProducts()[0] ? skuProducts()[0].id : "";
+        markDirty();
+        renderGa();
+        renderSkuView();
+        renderBundlesView();
+      }
+
+      function deleteCountry(id) {
+        if (!id || !ids("countries")[id]) return;
+        if (!confirm(`Delete country ${countryName(id)} (${id})?`)) return;
+        delete state.db.ids.countries[id];
+        delete state.db.countries[id];
+        if (state.db.checked && state.db.checked.countries) delete state.db.checked.countries[id];
+        state.selectedCountryId = ids("countries")[state.previousCountryId] ? state.previousCountryId : countries()[0] ? countries()[0].id : "";
+        markDirty();
+        renderWws();
+      }
+
+      function renderStatus() {
+        if (!state.db) return;
+        els.status.textContent = state.dirty ? "Local changes" : "CairmDB ready";
+      }
+
+      function renderHome() {
+        const statsBox = $("homeStats");
+        const summaryBox = $("homeSummary");
+        const detailsBox = $("homeDetails");
+        const datesBox = $("homeDates");
+        if (!statsBox || !summaryBox || !detailsBox || !datesBox) return;
+        if (!state.db) {
+          statsBox.innerHTML = "";
+          summaryBox.innerHTML = "";
+          detailsBox.innerHTML = "";
+          datesBox.innerHTML = "";
+          return;
+        }
+        const scopes = ["countries", "products", "skus", "bundles"];
+        const scopeLabel = { countries: "Countries", products: "Products", skus: "SKU products", bundles: "Bundles" };
+        const counts = {
+          countries: Object.keys(ids("countries")).length,
+          products: Object.keys(ids("products")).length,
+          skus: skuProducts().length,
+          bundles: Object.keys(ids("bundles")).length
+        };
+        statsBox.innerHTML = scopes.map((scope) => `<div class="home-stat"><strong>${counts[scope]}</strong><span>${scopeLabel[scope]}</span></div>`).join("");
+        const total = scopes.reduce((sum, scope) => sum + counts[scope], 0);
+        const checkedCount = (scope) => Object.keys((state.db.checked && state.db.checked[scope]) || {}).filter((id) => {
+          if (scope === "countries") return Boolean(ids("countries")[id]);
+          if (scope === "bundles") return Boolean(ids("bundles")[id]);
+          return Boolean(ids("products")[id]);
+        }).length;
+        const checked = scopes.reduce((sum, scope) => sum + checkedCount(scope), 0);
+        const countryData = countries();
+        const productsWithoutData = products().filter((product) => !product.record).length;
+        const skuWithoutData = skuProducts().filter((product) => {
+          const sku = readProductSkuData(product.record);
+          return !sku.global && !Object.values(sku.regions).some((value) => normalizeSkuValues(value).length) && !productSkuEntries(product.record).length;
+        }).length;
+        const bundlesWithoutProducts = bundles().filter((bundle) => !bundle.products.length).length;
+        summaryBox.innerHTML = `
+          <div><strong>${checked} / ${total}</strong><span>Checked records</span></div>
+          <div><strong>${Math.max(total - checked, 0)}</strong><span>Not checked</span></div>
+          <div><strong>${countryData.filter((country) => country.dataState === "empty").length + productsWithoutData}</strong><span>Records without data</span></div>
+        `;
+        const details = [
+          ["Countries", counts.countries - checkedCount("countries"), countryData.filter((country) => country.dataState === "empty").length, "without data"],
+          ["GA products", counts.products - checkedCount("products"), productsWithoutData, "without data"],
+          ["SKU products", counts.skus - checkedCount("skus"), skuWithoutData, "without SKU data"],
+          ["Bundles", counts.bundles - checkedCount("bundles"), bundlesWithoutProducts, "without products"]
+        ];
+        detailsBox.innerHTML = details.map(([labelText, notChecked, missing, missingLabel]) => `<div class="home-detail"><strong>${labelText}</strong><span>${notChecked} not checked</span><span class="attention">${missing} ${missingLabel}</span></div>`).join("");
+        const formatDate = (value) => {
+          const date = new Date(value);
+          return Number.isNaN(date.getTime()) ? "Not available" : new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(date);
+        };
+        datesBox.innerHTML = `<span><strong>Database updated:</strong> ${formatDate(state.db.updatedAt)}</span>`;
+      }
+
+      function setView(view) {
+        state.activeView = view;
+        els.tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.view === view)));
+        els.views.forEach((section) => section.classList.toggle("is-active", section.id === `view-${view}`));
+        if (view === "home") renderHome();
+      }
+
+      function renderCountryList() {
+        const query = normalize(els.countrySearch.value);
+        const visible = countries().filter((country) => {
+          const matchesQuery = !query || normalize([
+            country.id, country.name, country.aliases.join(" "), country.record.ga_zone, country.record.note
+          ].join(" ")).includes(query);
+          return matchesQuery && matchesListFilters("countries", country.id, { empty: country.dataState === "empty" });
+        });
+        els.countryList.innerHTML = visible.map(({ id, name, record, dataState }) => `
+          <button type="button" class="item${id === state.selectedCountryId ? " is-active" : ""}${checkedClass("countries", id)}${dataState === "empty" ? " has-no-data" : ""}" data-country="${esc(id)}">
+            <span class="title-row"><strong>${esc(name)}</strong><span class="meta">${esc(id)} · ${esc(label(record.ga_zone))}</span></span>
+            <span class="country-statuses"><span class="badge ${esc(record.spare_parts && record.spare_parts.status)}">SP ${esc(label(record.spare_parts && record.spare_parts.status))}</span><span class="badge ${esc(record.rma && record.rma.status)}">RMA ${esc(label(record.rma && record.rma.status))}</span>${text(record.note) ? '<span class="badge note-badge">Note</span>' : ""}</span>
+          </button>
+        `).join("") || '<div class="empty">No countries</div>';
+        els.countryList.querySelectorAll("[data-country]").forEach((button) => button.addEventListener("click", () => {
+          if (state.selectedCountryId !== button.dataset.country) state.previousCountryId = state.selectedCountryId;
+          state.selectedCountryId = button.dataset.country;
+          renderWws();
+        }));
+      }
+
+      function renderCountryEditor() {
+        const id = state.selectedCountryId || (countries()[0] && countries()[0].id);
+        if (!id) {
+          els.countryEditor.innerHTML = '<div class="empty">No country loaded</div>';
+          return;
+        }
+        state.selectedCountryId = id;
+        const record = ensureCountry(id);
+        const rmaCheckRetailer = record.rma.warranty_duration === "check_retailer";
+        const sparePartsControl = record.spare_parts.status === "yes"
+          ? `<div class="field"><label>Warranty duration</label><select data-country-field="spare_parts.warranty_duration">${warrantyOptions(record.spare_parts.warranty_duration)}</select></div>`
+          : "";
+        const rmaControl = record.rma.status === "yes"
+          ? `<div class="field"><div class="service-head"><label>Warranty duration</label><label class="checkline"><input id="rmaCheckRetailer" type="checkbox" ${rmaCheckRetailer ? "checked" : ""}> Check with retailer</label></div><select id="rmaWarrantyInput" class="${rmaCheckRetailer ? "hidden" : ""}" data-country-field="rma.warranty_duration">${warrantyOptions(record.rma.warranty_duration)}</select></div>`
+          : "";
+        els.countryEditor.innerHTML = `
+          <div class="data-card country-editor-card">
+            <div class="editor-header">
+              <div class="editor-title">
+                <div class="title-inline">
+                  <div class="row-title">${esc(countryName(id))}</div>
+                  <div class="editor-id">${esc(id)}</div>
+                  ${verifiedCheckbox("countries", id)}
+                </div>
+                ${countryZoneTabsHtml(record.ga_zone)}
+              </div>
+              <div class="actions"><button type="button" class="danger" id="deleteCountry">Delete</button></div>
+            </div>
+            <div class="editor-section">
+              <div class="section-title">Availability</div>
+              <div class="service-grid">
+                ${serviceCardHtml("spare_parts", "Spare parts", record.spare_parts.status || "no", sparePartsControl)}
+                ${serviceCardHtml("rma", "RMA", record.rma.status || "no", rmaControl)}
+              </div>
+            </div>
+            <div class="editor-section note-section">
+              <div class="section-title">Country note</div>
+              <textarea class="note-large" aria-label="Country note" data-country-field="note">${esc(record.note)}</textarea>
+            </div>
+          </div>
+        `;
+        bindVerifiedCheckbox(els.countryEditor, () => {
+          renderCountryList();
+          renderCountryEditor();
+        });
+        $("deleteCountry").addEventListener("click", () => deleteCountry(id));
+        bindServiceToggle(els.countryEditor, (name) => ensureCountry(id)[name], () => {
+          markDirty();
+          renderCountryList();
+          renderCountryEditor();
+        });
+        els.countryEditor.querySelectorAll("[data-country-zone]").forEach((button) => button.addEventListener("click", () => {
+          ensureCountry(id).ga_zone = button.dataset.countryZone;
+          markDirty();
+          renderWws();
+        }));
+        els.countryEditor.querySelectorAll("[data-country-field]").forEach((input) => {
+          const updateCountryField = () => {
+          const path = input.dataset.countryField.split(".");
+          const target = ensureCountry(id);
+          if (path.length === 1) target[path[0]] = input.value;
+          else target[path[0]][path[1]] = input.value;
+          markDirty();
+          renderCountryList();
+          };
+          input.addEventListener("input", updateCountryField);
+          input.addEventListener("change", updateCountryField);
+        });
+        const rmaCheckRetailerInput = $("rmaCheckRetailer");
+        if (rmaCheckRetailerInput) rmaCheckRetailerInput.addEventListener("change", (event) => {
+            record.rma.warranty_duration = event.target.checked ? "check_retailer" : 2;
+            markDirty();
+            renderCountryEditor();
+          });
+      }
+
+      function renderWws() {
+        renderCountryList();
+        renderCountryEditor();
+        renderStatus();
+      }
+
+      function renderProductList() {
+        const query = normalize(els.productSearch.value);
+        const visible = products().filter((product) => matchesListFilters("products", product.id, { empty: !product.record }) && (!query || normalize([product.id, product.name, product.crmId, product.aliases.join(" ")].join(" ")).includes(query)));
+        els.productList.innerHTML = visible.map((product) => `
+          <button type="button" class="item${product.id === state.selectedProductId ? " is-active" : ""}${checkedClass("products", product.id)}${product.record ? "" : " has-no-data"}" data-product="${esc(product.id)}">
+            <span class="title-row"><strong>${esc(product.name)}</strong><span class="meta">${esc(product.id)}</span></span>
+            ${productHasNote(product.record) ? '<span class="badge note-badge">Note</span>' : ""}
+          </button>
+        `).join("") || '<div class="empty">No products</div>';
+        els.productList.querySelectorAll("[data-product]").forEach((button) => button.addEventListener("click", () => {
+          if (state.selectedProductId !== button.dataset.product) state.previousProductId = state.selectedProductId;
+          state.selectedProductId = button.dataset.product;
+          renderGa();
+        }));
+      }
+
+      function zoneTabsHtml() {
+        return `<div class="zone-tabs">${ZONES.map((zone) => `<button type="button" class="zone-tab region-pill ${esc(regionClass(zone))}${zone === state.selectedZone ? " is-active" : ""}" data-zone="${esc(zone)}">${esc(label(zone))}</button>`).join("")}</div>`;
+      }
+
+      function countryZoneTabsHtml(selectedZone) {
+        return `<div class="zone-tabs country-zone-tabs">${ZONES.map((zone) => `<button type="button" class="zone-tab region-pill ${esc(regionClass(zone))}${zone === selectedZone ? " is-active" : ""}" data-country-zone="${esc(zone)}">${esc(label(zone))}</button>`).join("")}</div>`;
+      }
+
+      function bindZoneTabs(root) {
+        root.querySelectorAll("[data-zone]").forEach((button) => button.addEventListener("click", () => {
+          state.selectedZone = button.dataset.zone;
+          renderGa();
+        }));
+      }
+
+      function setPath(target, path, value) {
+        const parts = path.split(".");
+        let cursor = target;
+        while (parts.length > 1) {
+          const key = parts.shift();
+          cursor[key] ||= {};
+          cursor = cursor[key];
+        }
+        cursor[parts[0]] = value;
+      }
+
+      function feeToText(value) {
+        if (value === null || value === undefined) return "";
+        if (typeof value === "object") {
+          return [value.amount == null ? "" : value.amount, value.currency || ""].map(text).filter(Boolean).join(" ");
+        }
+        return text(value);
+      }
+
+      function paidDisplayStatus(paid) {
+        if (!paid) return "no";
+        if (paid.status) return paid.status;
+        return (paid.location || feeToText(paid.price)) ? "yes" : "no";
+      }
+
+      function countryOptions(current) {
+        return countries().map(({ id, name }) => `<option value="${esc(id)}"${id === current ? " selected" : ""}>${esc(id)} · ${esc(name)}</option>`).join("");
+      }
+
+      function resolveLocationId(value) {
+        const current = text(value);
+        if (!current) return "";
+        const locations = ids("locations");
+        if (locations[current]) return current;
+        const match = Object.entries(locations).find(([id, location]) => {
+          const names = [location && location.name, ...((location && location.aliases) || [])];
+          return names.some((name) => normalize(name) === normalize(current));
+        });
+        return match ? match[0] : current;
+      }
+
+      function locationOptions(current) {
+        const resolved = resolveLocationId(current);
+        const locations = ids("locations");
+        const options = [`<option value=""${resolved ? "" : " selected"}></option>`];
+        RMA_LOCATION_IDS.forEach((id) => {
+          const location = locations[id];
+          if (!location) return;
+          options.push(`<option value="${esc(id)}"${id === resolved ? " selected" : ""}>${esc(location && location.name || id)}</option>`);
+        });
+        return options.join("");
+      }
+
+      function renderProductEditor() {
+        const id = state.selectedProductId || (products()[0] && products()[0].id);
+        if (!id) {
+          els.productEditor.innerHTML = '<div class="empty">No product loaded</div>';
+          return;
+        }
+        state.selectedProductId = id;
+        const product = hasProductGaData(state.db.products[id]) ? state.db.products[id] : null;
+        if (!product) {
+          els.productEditor.innerHTML = `
+            <div class="data-card">
+              <div class="editor-header">
+                <div class="editor-title">
+                  <div class="title-inline">
+                    <div class="row-title">${esc(productName(id))}</div>
+                    <div class="editor-id">${esc(id)}</div>
+                    ${verifiedCheckbox("products", id)}
+                  </div>
+                  ${zoneTabsHtml()}
+                </div>
+                <div class="actions">
+                  <button type="button" id="initProductZone">Add data</button>
+                  <button type="button" class="danger" id="deleteProduct">Delete</button>
+                </div>
+              </div>
+              <div class="empty">No data for this region</div>
+            </div>
+          `;
+          bindVerifiedCheckbox(els.productEditor, () => {
+            renderProductList();
+            renderProductEditor();
+          });
+          bindZoneTabs(els.productEditor);
+          $("initProductZone").addEventListener("click", () => {
+            ensureProductZone(id, state.selectedZone);
+            markDirty();
+            renderGa();
+          });
+          $("deleteProduct").addEventListener("click", () => deleteProduct(id));
+          return;
+        }
+        const zone = zoneForDisplay(product.zones && product.zones[state.selectedZone]);
+        const fees = zone.rma.extra_transport_fees || {};
+        const paidPriceText = feeToText(zone.rma.paid && zone.rma.paid.price);
+        const paidLocation = zone.rma.paid && zone.rma.paid.location || "";
+        const defaultFeeText = feeToText(zone.rma.default_transport_fee);
+        const paidStatus = paidDisplayStatus(zone.rma.paid);
+        const rmaStatus = zone.rma.status || "no";
+        const rmaControl = rmaStatus === "yes"
+          ? `<div class="field"><label>To</label><select data-product-field="rma.location">${locationOptions(zone.rma.location || "")}</select></div>`
+          : "";
+        const paidRmaActive = paidStatus === "yes";
+        els.productEditor.innerHTML = `
+          <div class="data-card product-editor-card">
+            <div class="editor-header">
+              <div class="editor-title">
+                <div class="title-inline">
+                  <div class="row-title">${esc(productName(id))}</div>
+                  <div class="editor-id">${esc(id)}</div>
+                  ${verifiedCheckbox("products", id)}
+                </div>
+                ${zoneTabsHtml()}
+              </div>
+              <div class="actions">
+                <button type="button" class="danger" id="deleteProduct">Delete</button>
+              </div>
+            </div>
+            <div class="product-form-layout">
+              <section class="editor-section product-services-section">
+                <div class="section-title">Services configuration</div>
+                <div class="service-grid product-service-stack">
+                  ${serviceCardHtml("spare_parts", "Spare parts", zone.spare_parts.status || "no")}
+                  ${serviceCardHtml("rma", "RMA", rmaStatus, rmaControl)}
+                  <div class="service-card exchange-card">
+                    <div class="service-head">
+                      <label>Exchange</label>
+                      <label class="checkline" title="Add a decision comment"><input type="checkbox" data-exchange-comment-toggle ${zone.exchange && typeof zone.exchange.comment === "string" ? "checked" : ""}> comment</label>
+                    </div>
+                    <select data-product-field="exchange.status">${exchangeOptionHtml(zone.exchange && zone.exchange.status || "no")}</select>
+                  </div>
+                </div>
+                <div class="exchange-comment-panel" ${zone.exchange && typeof zone.exchange.comment === "string" ? "" : "hidden"}>
+                  <label>Decision comment</label>
+                  <textarea data-product-field="exchange.comment" maxlength="280" placeholder="Short comment (280 characters max.)">${esc(zone.exchange && zone.exchange.comment || "")}</textarea>
+                </div>
+              </section>
+              <section class="editor-section product-paid-section">
+                <div class="section-title">Paid RMA proposal</div>
+                ${serviceCardHtml("paid", "Proposing", paidStatus)}
+                <div class="paid-rma-details" ${paidRmaActive ? "" : "hidden"}>
+                  <div class="paid-rma-fields">
+                    <div class="field"><label>To</label><select data-product-field="rma.paid.location">${locationOptions(paidLocation)}</select></div>
+                    <div class="field"><label>Price</label><input data-product-field="rma.paid.price" value="${esc(paidPriceText)}" placeholder="Price (free text)"></div>
+                  </div>
+                  <div class="paid-rma-fees">
+                    <div class="field"><label>Regional fee</label><input data-product-field="rma.default_transport_fee" value="${esc(defaultFeeText)}" placeholder="Fee (free text)"></div>
+                    <div class="field">
+                      <div class="head-row">
+                        <label>Country-specific fees</label>
+                        <button type="button" class="icon primary" id="addFee" title="Add country fee">+</button>
+                      </div>
+                      <div class="list" id="feeList">
+                        ${Object.entries(fees).map(([countryId, fee]) => `<div class="fee-row" data-fee-country="${esc(countryId)}"><select data-fee-id>${countryOptions(countryId)}</select><input data-fee-value value="${esc(feeToText(fee))}" placeholder="Fee"><button type="button" class="danger" data-remove-fee>Remove</button></div>`).join("") || '<div class="empty">No country-specific fees</div>'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <div class="editor-section note-section">
+              <div class="section-title">Global product note</div>
+              <textarea class="note-large" aria-label="Global product note" data-product-global-note>${esc(product.note || "")}</textarea>
+            </div>
+          </div>
+        `;
+        bindVerifiedCheckbox(els.productEditor, () => {
+          renderProductList();
+          renderProductEditor();
+        });
+        bindZoneTabs(els.productEditor);
+        bindServiceToggle(els.productEditor, (name) => {
+          const targetZone = ensureProductZone(id, state.selectedZone);
+          if (name === "spare_parts") return targetZone.spare_parts;
+          if (name === "paid") return targetZone.rma.paid;
+          return targetZone.rma;
+        }, () => {
+          markDirty();
+          renderProductList();
+          renderProductEditor();
+        });
+        $("deleteProduct").addEventListener("click", () => deleteProduct(id));
+        els.productEditor.querySelectorAll("[data-product-field]").forEach((input) => {
+          const updateProductField = () => {
+          const value = input.dataset.productField === "exchange.comment"
+            ? input.value
+            : input.type === "number" && text(input.value) !== "" ? Number(input.value) : input.value || null;
+          setPath(ensureProductZone(id, state.selectedZone), input.dataset.productField, value);
+          markDirty();
+          renderProductList();
+          };
+          input.addEventListener("input", updateProductField);
+          input.addEventListener("change", updateProductField);
+        });
+        const globalProductNote = els.productEditor.querySelector("[data-product-global-note]");
+        if (globalProductNote) {
+          globalProductNote.addEventListener("input", () => {
+            state.db.products[id].note = globalProductNote.value;
+            markDirty();
+            renderProductList();
+          });
+        }
+        const exchangeCommentToggle = els.productEditor.querySelector("[data-exchange-comment-toggle]");
+        if (exchangeCommentToggle) {
+          exchangeCommentToggle.addEventListener("change", () => {
+            const exchange = ensureProductZone(id, state.selectedZone).exchange;
+            if (exchangeCommentToggle.checked) {
+              exchange.comment ||= "";
+            } else {
+              delete exchange.comment;
+            }
+            markDirty();
+            renderProductEditor();
+          });
+        }
+        els.productEditor.querySelectorAll("[data-fee-country]").forEach((row) => {
+          const idInput = row.querySelector("[data-fee-id]");
+          const valueInput = row.querySelector("[data-fee-value]");
+          row.querySelector("[data-remove-fee]").addEventListener("click", () => {
+            const targetZone = ensureProductZone(id, state.selectedZone);
+            delete targetZone.rma.extra_transport_fees[row.dataset.feeCountry];
+            markDirty();
+            renderProductEditor();
+          });
+          idInput.addEventListener("change", () => {
+            const targetZone = ensureProductZone(id, state.selectedZone);
+            const oldId = row.dataset.feeCountry;
+            const value = targetZone.rma.extra_transport_fees[oldId];
+            delete targetZone.rma.extra_transport_fees[oldId];
+            targetZone.rma.extra_transport_fees[idInput.value] = value;
+            markDirty();
+            renderProductEditor();
+          });
+          valueInput.addEventListener("input", () => {
+            ensureProductZone(id, state.selectedZone).rma.extra_transport_fees[row.dataset.feeCountry] = valueInput.value;
+            markDirty();
+          });
+        });
+        const addFeeButton = $("addFee");
+        if (addFeeButton) addFeeButton.addEventListener("click", () => {
+          const firstCountry = countries()[0] && countries()[0].id;
+          if (!firstCountry) return;
+          ensureProductZone(id, state.selectedZone).rma.extra_transport_fees[firstCountry] ||= "";
+          markDirty();
+          renderProductEditor();
+        });
+      }
+
+      function renderGa() {
+        renderProductList();
+        renderProductEditor();
+        renderStatus();
+      }
+
+      function skuCountryOptions(current) {
+        const options = countries().map(({ id, name }) => `<option value="${esc(id)}"${id === current ? " selected" : ""}>${esc(id)} · ${esc(name)}</option>`);
+        if (current && !ids("countries")[current]) {
+          options.unshift(`<option value="${esc(current)}" selected>${esc(current)} · Missing country</option>`);
+        }
+        return options.join("");
+      }
+
+      function renderSkuProductList() {
+        const query = normalize(els.skuProductSearch.value);
+        const visible = skuProducts().filter((product) => {
+          const globalSku = readProductSkuData(product.record).global;
+          const regionSkus = Object.entries(readProductSkuData(product.record).regions).flatMap(([regionId, value]) => [regionId, ...normalizeSkuValues(value)]);
+          const countryEntries = productSkuEntries(product.record);
+          const skuSearchText = countryEntries
+            .flatMap(([countryId, values]) => [countryId, countryName(countryId), ...values])
+            .join(" ");
+          const hasSkuData = Boolean(globalSku || regionSkus.length || countryEntries.length);
+          return matchesListFilters("skus", product.id, { empty: !hasSkuData }) && (!query || normalize([product.id, product.name, product.crmId, product.aliases.join(" "), globalSku, regionSkus.join(" "), skuSearchText].join(" ")).includes(query));
+        });
+        els.skuProductList.innerHTML = visible.map((product) => {
+          const globalSku = readProductSkuData(product.record).global;
+          const entries = productSkuEntries(product.record);
+          const regionCount = Object.values(readProductSkuData(product.record).regions).filter((value) => normalizeSkuValues(value).length).length;
+          const skuSummary = [
+            globalSku ? "Default" : "",
+            regionCount ? `${regionCount} region${regionCount > 1 ? "s" : ""}` : "",
+            entries.length ? `${entries.length} countries` : ""
+          ].filter(Boolean).join(" · ");
+          return `
+            <button type="button" class="item${product.id === state.selectedSkuProductId ? " is-active" : ""}${checkedClass("skus", product.id)}" data-sku-product="${esc(product.id)}">
+              <span class="title-row"><strong>${esc(product.name)}</strong><span class="meta">${esc(product.id)}</span></span>
+              ${skuSummary ? `<span class="meta">${esc(skuSummary)}</span>` : ""}
+            </button>
+          `;
+        }).join("") || '<div class="empty">No products</div>';
+        els.skuProductList.querySelectorAll("[data-sku-product]").forEach((button) => button.addEventListener("click", () => {
+          if (state.selectedSkuProductId !== button.dataset.skuProduct) state.previousSkuProductId = state.selectedSkuProductId;
+          state.selectedSkuProductId = button.dataset.skuProduct;
+          renderSkuView();
+        }));
+      }
+
+      function renderSkuEditor() {
+        const eligibleProducts = skuProducts();
+        const id = eligibleProducts.some((product) => product.id === state.selectedSkuProductId)
+          ? state.selectedSkuProductId
+          : eligibleProducts[0] && eligibleProducts[0].id;
+        if (!id) {
+          state.selectedSkuProductId = "";
+          els.skuEditor.innerHTML = '<div class="empty">No products</div>';
+          return;
+        }
+        state.selectedSkuProductId = id;
+        const product = state.db.products[id] || null;
+        const skuData = readProductSkuData(product);
+        const entries = productSkuRows(product);
+        const regionEntries = productSkuRegionRows(product);
+        const configuredRegionCount = regionEntries.filter(([, values]) => values[0]).length;
+        const usedCountryIds = new Set(entries.map(([countryId]) => countryId));
+        const canAddSkuCountry = countries().some((country) => !usedCountryIds.has(country.id));
+        els.skuEditor.innerHTML = `
+          <div class="data-card sku-editor-card editor-form-card">
+            <div class="editor-header">
+              <div class="editor-title">
+                <div class="title-inline">
+                  <div class="row-title">${esc(productName(id))}</div>
+                  <div class="editor-id">${esc(id)}</div>
+                  ${verifiedCheckbox("skus", id)}
+                </div>
+              </div>
+            </div>
+            <div class="editor-section">
+              <div class="sku-section-titlebar">
+                <div class="section-title">Default</div>
+                <span class="sku-optional">Optional</span>
+              </div>
+              <input class="sku-default-input" id="globalSku" aria-label="Default SKU" value="${esc(skuData.global)}" placeholder="Default SKU">
+            </div>
+            <div class="editor-section">
+              <div class="sku-section-titlebar">
+                <div class="section-title">By region</div>
+                <span class="sku-count">${configuredRegionCount}/${regionEntries.length}</span>
+              </div>
+              <div class="sku-region-grid" id="skuRegionRows">
+                ${regionEntries.map(([regionId, values]) => `
+                  <div class="sku-region-row${values[0] ? " has-value" : ""}" data-sku-region="${esc(regionId)}">
+                    <strong class="region-pill ${esc(regionClass(regionId))}" title="${esc(label(regionId))}">${esc(label(regionId))}</strong>
+                    <input data-sku-region-value aria-label="SKU ${esc(label(regionId))}" value="${esc(values[0] || "")}" placeholder="No SKU">
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+            <div class="editor-section">
+              <div class="sku-section-titlebar">
+                <div class="section-title">By country</div>
+                <button
+                  type="button"
+                  class="primary small"
+                  id="addSkuCountry"
+                  ${canAddSkuCountry ? "" : "disabled"}
+                  title="${canAddSkuCountry ? "Add country exception" : "All countries are already configured"}"
+                >+ Country</button>
+              </div>
+              <div class="sku-list-head" aria-hidden="true"><span>Country</span><span>SKU</span><span></span></div>
+              <div class="list" id="skuRows">
+                ${entries.map(([countryId, values]) => `
+                  <div class="sku-row sku-country-row" data-sku-country="${esc(countryId)}">
+                    <select data-sku-country-id aria-label="Country">${skuCountryOptions(countryId)}</select>
+                    <input data-sku-values aria-label="SKU for ${esc(countryName(countryId))}" value="${esc(values[0] || "")}" placeholder="Country SKU">
+                    <button
+                      type="button"
+                      class="danger icon sku-remove"
+                      data-remove-sku-country
+                      aria-label="Remove ${esc(countryName(countryId))}"
+                      title="Remove this country"
+                    >×</button>
+                  </div>
+                `).join("") || '<div class="empty">No country exceptions</div>'}
+              </div>
+            </div>
+          </div>
+        `;
+        bindVerifiedCheckbox(els.skuEditor, () => {
+          renderSkuProductList();
+          renderSkuEditor();
+        });
+        $("globalSku").addEventListener("input", (event) => {
+          const skus = ensureProductSkus(id);
+          skus.global = text(event.target.value);
+          markDirty();
+          renderSkuProductList();
+        });
+        els.skuEditor.querySelectorAll("[data-sku-region]").forEach((row) => {
+          row.querySelector("[data-sku-region-value]").addEventListener("input", (event) => {
+            const skus = ensureProductSkus(id);
+            const value = normalizeSkuValues(event.target.value)[0] || "";
+            if (value) skus.regions[row.dataset.skuRegion] = value;
+            else delete skus.regions[row.dataset.skuRegion];
+            row.classList.toggle("has-value", !!value);
+            const count = els.skuEditor.querySelector(".sku-count");
+            if (count) {
+              const configured = els.skuEditor.querySelectorAll("[data-sku-region].has-value").length;
+              count.textContent = `${configured}/${regionEntries.length}`;
+            }
+            cleanProductSkus(state.db.products[id]);
+            markDirty();
+            renderSkuProductList();
+          });
+        });
+        els.skuEditor.querySelectorAll("[data-sku-country]").forEach((row) => {
+          const countryInput = row.querySelector("[data-sku-country-id]");
+          const valuesInput = row.querySelector("[data-sku-values]");
+          row.querySelector("[data-remove-sku-country]").addEventListener("click", () => {
+            const skus = ensureProductSkus(id);
+            delete skus.countries[row.dataset.skuCountry];
+            cleanProductSkus(state.db.products[id]);
+            markDirty();
+            renderSkuView();
+          });
+          countryInput.addEventListener("change", () => {
+            const skus = ensureProductSkus(id);
+            const oldCountryId = row.dataset.skuCountry;
+            const nextCountryId = countryInput.value;
+            const mergedValue = normalizeSkuValues([...(normalizeSkuValues(skus.countries[oldCountryId])), ...(normalizeSkuValues(skus.countries[nextCountryId]))])[0] || "";
+            delete skus.countries[oldCountryId];
+            skus.countries[nextCountryId] = mergedValue;
+            markDirty();
+            renderSkuView();
+          });
+          valuesInput.addEventListener("input", () => {
+            const skus = ensureProductSkus(id);
+            const value = normalizeSkuValues(valuesInput.value)[0] || "";
+            if (value) skus.countries[row.dataset.skuCountry] = value;
+            else delete skus.countries[row.dataset.skuCountry];
+            cleanProductSkus(state.db.products[id]);
+            markDirty();
+            renderSkuProductList();
+          });
+        });
+        $("addSkuCountry").addEventListener("click", () => {
+          const skus = ensureProductSkus(id);
+          const usedCountries = new Set(Object.keys(skus.countries));
+          const firstAvailableCountry = countries().find((country) => !usedCountries.has(country.id));
+          if (!firstAvailableCountry) return;
+          skus.countries[firstAvailableCountry.id] = "";
+          markDirty();
+          renderSkuEditor();
+        });
+      }
+
+      function renderSkuView() {
+        renderSkuProductList();
+        renderSkuEditor();
+        renderStatus();
+      }
+
+      function renderBundleList() {
+        const query = normalize(els.bundleSearch.value);
+        const visible = bundles().filter((bundle) => matchesListFilters("bundles", bundle.id) && (!query || normalize([bundle.id, bundle.name, bundle.products.map(productName).join(" ")].join(" ")).includes(query)));
+        els.bundleList.innerHTML = visible.map((bundle) => `
+          <button type="button" class="item${bundle.id === state.selectedBundleId ? " is-active" : ""}${checkedClass("bundles", bundle.id)}" data-bundle="${esc(bundle.id)}">
+            <strong>${esc(bundle.name)}</strong>
+            <span class="meta">${esc(bundle.id)} · ${bundle.products.length} product${bundle.products.length === 1 ? "" : "s"}</span>
+          </button>
+        `).join("") || '<div class="empty">No bundles</div>';
+        els.bundleList.querySelectorAll("[data-bundle]").forEach((button) => button.addEventListener("click", () => {
+          if (state.selectedBundleId !== button.dataset.bundle) state.previousBundleId = state.selectedBundleId;
+          state.selectedBundleId = button.dataset.bundle;
+          renderBundlesView();
+        }));
+      }
+
+      function currentBundleRecord() {
+        return state.selectedBundleId && ids("bundles")[state.selectedBundleId] ? ids("bundles")[state.selectedBundleId] : null;
+      }
+
+      function renderBundleEditor() {
+        const current = currentBundleRecord();
+        const selected = current && Array.isArray(current.products) ? current.products : [];
+        const editorBundleId = current ? state.selectedBundleId : nextBundleId();
+        els.bundleEditor.innerHTML = `
+          <div class="data-card bundle-editor-card editor-form-card">
+            <div class="editor-header">
+              <div class="editor-title">
+                <div class="title-inline">
+                  <div class="row-title">${esc(current && current.name || "New bundle")}</div>
+                  <div class="editor-id">${esc(editorBundleId)}</div>
+                  ${current ? verifiedCheckbox("bundles", state.selectedBundleId) : ""}
+                </div>
+              </div>
+              <div class="actions">
+                <button type="button" class="primary" id="saveBundle">Save bundle</button>
+                ${current ? '<button type="button" class="danger" id="deleteBundle">Delete</button>' : ""}
+              </div>
+            </div>
+            <div class="editor-section">
+              <div class="section-title">Bundle details</div>
+              <div class="grid-2 bundle-details-grid">
+              <div class="field"><label>Bundle ID</label><input id="bundleId" value="${esc(editorBundleId)}" readonly></div>
+              <div class="field"><label>Custom name</label><input id="bundleName" value="${esc(current && current.name)}" placeholder="Bundle name"></div>
+              </div>
+            </div>
+            <div class="editor-section bundle-product-section">
+              <div class="section-title">Bundle products</div>
+              <div class="list" id="selectedProducts">
+                ${selected.map((productId) => `<div class="selected-row" draggable="true" data-selected-product="${esc(productId)}"><span class="drag-handle" title="Drag to reorder">==</span><div><strong>${esc(productName(productId))}</strong><div class="meta">${esc(productId)}</div></div><div class="actions"><button type="button" class="danger" data-remove-product>Remove</button></div></div>`).join("") || '<div class="empty">No products in this bundle</div>'}
+              </div>
+            </div>
+            <div class="editor-section bundle-product-section">
+              <div class="section-title">Add from GA</div>
+              <div class="field bundle-search-field"><label for="bundleProductSearch">Find a product to add</label><input id="bundleProductSearch" type="search" autocomplete="off" placeholder="Search by product name or ID..."></div>
+              <div class="list bundle-results" id="bundleProductResults"></div>
+            </div>
+          </div>
+        `;
+        bindVerifiedCheckbox(els.bundleEditor, () => {
+          renderBundleList();
+          renderBundleEditor();
+        });
+        renderBundleProductResults();
+        $("bundleProductSearch").addEventListener("input", renderBundleProductResults);
+        $("saveBundle").addEventListener("click", saveBundle);
+        const deleteButton = $("deleteBundle");
+        if (deleteButton) deleteButton.addEventListener("click", deleteBundle);
+        els.bundleEditor.querySelectorAll("[data-selected-product]").forEach((row) => {
+          row.querySelector("[data-remove-product]").addEventListener("click", () => updateCurrentBundleProducts((items) => items.filter((id) => id !== row.dataset.selectedProduct)));
+          row.addEventListener("dragstart", (event) => {
+            row.classList.add("is-dragging");
+            event.dataTransfer.setData("text/plain", row.dataset.selectedProduct);
+            event.dataTransfer.effectAllowed = "move";
+          });
+          row.addEventListener("dragend", () => row.classList.remove("is-dragging"));
+          row.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          });
+          row.addEventListener("drop", (event) => {
+            event.preventDefault();
+            const sourceId = event.dataTransfer.getData("text/plain");
+            const targetId = row.dataset.selectedProduct;
+            if (!sourceId || sourceId === targetId) return;
+            updateCurrentBundleProducts((items) => {
+              const next = items.filter((item) => item !== sourceId);
+              const targetIndex = next.indexOf(targetId);
+              next.splice(targetIndex, 0, sourceId);
+              return next;
+            });
+          });
+        });
+      }
+
+      function saveBundle() {
+        const id = text($("bundleId").value) || nextBundleId();
+        const name = text($("bundleName").value);
+        if (!name) {
+          $("bundleName").focus();
+          return;
+        }
+        state.db.ids.bundles ||= {};
+        const previous = state.db.ids.bundles[id] || {};
+        state.db.ids.bundles[id] = { ...previous, name, products: Array.isArray(previous.products) ? previous.products : [], aliases: [name], _source: { file: "cairmdb-manager" } };
+        state.selectedBundleId = id;
+        syncActiveBundles();
+        markDirty();
+        renderBundlesView();
+      }
+
+      function syncActiveBundles() {
+        state.db.activeBundles = bundles().map((bundle) => ({ id: bundle.id, name: bundle.name, status: "manual", composition: bundle.products.map(productName).join(" + "), products: bundle.products, source: "cairmdb-manager" }));
+      }
+
+      function ensureDraftBundle() {
+        if (state.selectedBundleId && ids("bundles")[state.selectedBundleId]) return state.selectedBundleId;
+        const id = $("bundleId") ? text($("bundleId").value) : nextBundleId();
+        state.db.ids.bundles[id] = { name: text($("bundleName") && $("bundleName").value) || id, products: [], aliases: [], _source: { file: "cairmdb-manager" } };
+        state.selectedBundleId = id;
+        return id;
+      }
+
+      function updateCurrentBundleProducts(transform) {
+        const id = ensureDraftBundle();
+        state.db.ids.bundles[id].products = transform([...(state.db.ids.bundles[id].products || [])]);
+        syncActiveBundles();
+        markDirty();
+        renderBundlesView();
+      }
+
+      function renderBundleProductResults() {
+        const box = $("bundleProductResults");
+        const input = $("bundleProductSearch");
+        if (!box || !input) return;
+        const query = normalize(input.value);
+        if (!query) {
+          box.innerHTML = '<div class="empty">Enter a search to show products</div>';
+          return;
+        }
+        const selected = new Set(currentBundleRecord() && currentBundleRecord().products || []);
+        const visible = products().filter((product) => !selected.has(product.id)).filter((product) => !query || normalize([product.id, product.name, product.crmId, product.aliases.join(" ")].join(" ")).includes(query)).slice(0, 80);
+        box.innerHTML = visible.map((product) => `<div class="product-row" data-add-product="${esc(product.id)}"><div><strong>${esc(product.name)}</strong><div class="meta">${esc(product.id)}</div></div><button type="button">Add</button></div>`).join("") || '<div class="empty">No products found</div>';
+        box.querySelectorAll("[data-add-product]").forEach((row) => row.querySelector("button").addEventListener("click", () => updateCurrentBundleProducts((items) => [...items, row.dataset.addProduct])));
+      }
+
+      function newBundle() {
+        state.previousBundleId = state.selectedBundleId;
+        state.selectedBundleId = "";
+        renderBundlesView();
+        $("bundleName").focus();
+      }
+
+      function deleteBundle() {
+        if (!state.selectedBundleId) return;
+        delete state.db.ids.bundles[state.selectedBundleId];
+        if (state.db.checked && state.db.checked.bundles) delete state.db.checked.bundles[state.selectedBundleId];
+        state.selectedBundleId = ids("bundles")[state.previousBundleId] ? state.previousBundleId : bundles()[0] ? bundles()[0].id : "";
+        syncActiveBundles();
+        markDirty();
+        renderBundlesView();
+      }
+
+      function renderBundlesView() {
+        renderBundleList();
+        renderBundleEditor();
+        renderStatus();
+      }
+
+      function renderAll() {
+        renderHome();
+        renderWws();
+        renderGa();
+        renderSkuView();
+        renderBundlesView();
+      }
+
+      function buildExportDb() {
+        const output = clone(state.db);
+        reconcileCountryRecords(output);
+        Object.values(output.products || {}).forEach(cleanProductSkus);
+        output.version = new Date().toISOString().slice(0, 10);
+        output.updatedAt = new Date().toISOString();
+        return output;
+      }
+
+      function parseCsvLine(line) {
+        const cells = [];
+        let cell = "";
+        let quoted = false;
+        for (let index = 0; index < line.length; index += 1) {
+          const char = line[index];
+          const next = line[index + 1];
+          if (char === '"' && quoted && next === '"') {
+            cell += '"';
+            index += 1;
+          } else if (char === '"') {
+            quoted = !quoted;
+          } else if (char === ";" && !quoted) {
+            cells.push(cell);
+            cell = "";
+          } else {
+            cell += char;
+          }
+        }
+        cells.push(cell);
+        return cells;
+      }
+
+      function parseProductListCsv(csv) {
+        const lines = text(csv).replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => text(line));
+        if (lines.length < 2) return [];
+        const headers = parseCsvLine(lines[0]).map(text);
+        return lines.slice(1).map((line, index) => {
+          const cells = parseCsvLine(line);
+          const row = {};
+          headers.forEach((header, cellIndex) => {
+            row[header] = text(cells[cellIndex]);
+          });
+          row.__rowNumber = index + 2;
+          return row;
+        });
+      }
+
+      function nextProductIdFor(productIds) {
+        const used = new Set(Object.keys(productIds));
+        let index = used.size + 1;
+        let id = "";
+        do {
+          id = `P${String(index).padStart(3, "0")}`;
+          index += 1;
+        } while (used.has(id));
+        return id;
+      }
+
+      function mergeProductList(db, csv) {
+        db.ids ||= {};
+        db.ids.products ||= {};
+        const productIds = db.ids.products;
+        const existingCrmIds = new Set(Object.values(productIds).map((meta) => text(meta && meta.crm_id)).filter(Boolean));
+        const existingNames = new Set(Object.values(productIds).map((meta) => normalize(meta && meta.name)).filter(Boolean));
+        let added = 0;
+        parseProductListCsv(csv).forEach((row) => {
+          const name = text(row.Nom);
+          const crmId = text(row.Id);
+          if (!name || (crmId && existingCrmIds.has(crmId)) || (!crmId && existingNames.has(normalize(name)))) return;
+          const id = nextProductIdFor(productIds);
+          productIds[id] = {
+            name,
+            aliases: [name],
+            crm_id: crmId,
+            _source: { file: "PL.csv", row: row.__rowNumber }
+          };
+          if (crmId) existingCrmIds.add(crmId);
+          existingNames.add(normalize(name));
+          added += 1;
+        });
+        return added;
+      }
+
+      async function exportDbFile() {
+        if (!state.db) return;
+        const json = `${JSON.stringify(buildExportDb(), null, 2)}\n`;
+        if (window.cairmDesktop) {
+          const result = await window.cairmDesktop.saveDatabase(json);
+          if (result.saved) {
+            els.status.textContent = "JSON saved";
+          }
+          return;
+        }
+        const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "CairmDB.json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        els.status.textContent = "JSON export downloaded";
+      }
+
+      async function exportDb() {
+        if (!state.db) return;
+        const json = `${JSON.stringify(buildExportDb(), null, 2)}\n`;
+        clearTimeout(copyFeedbackTimer);
+        els.exportDb.classList.remove("is-copied", "is-copy-error");
+        els.exportDb.classList.add("is-copying");
+        els.exportDb.textContent = "Copying…";
+        els.exportDb.disabled = true;
+        try {
+          if (window.cairmDesktop) await window.cairmDesktop.copyDatabase(json);
+          else await navigator.clipboard.writeText(json);
+          els.status.textContent = "Database copied to clipboard";
+          els.exportDb.classList.remove("is-copying");
+          els.exportDb.classList.add("is-copied");
+          els.exportDb.textContent = "Copied ✓";
+        } catch (error) {
+          els.status.textContent = "Copy failed, use Save as file instead";
+          els.exportDb.classList.remove("is-copying");
+          els.exportDb.classList.add("is-copy-error");
+          els.exportDb.textContent = "Failed";
+        } finally {
+          els.exportDb.disabled = false;
+          copyFeedbackTimer = window.setTimeout(() => {
+            els.exportDb.classList.remove("is-copying", "is-copied", "is-copy-error");
+            els.exportDb.textContent = "Copy DB";
+          }, 1800);
+        }
+      }
+
+      function loadIntoState(db, fromDraft) {
+        if (!db || typeof db !== "object" || Array.isArray(db)) {
+          throw new Error("The JSON root must be an object");
+        }
+        state.db = db;
+        if (!state.db.ids || typeof state.db.ids !== "object" || Array.isArray(state.db.ids)) state.db.ids = {};
+        ["countries", "products", "bundles"].forEach((scope) => {
+          if (!state.db.ids[scope] || typeof state.db.ids[scope] !== "object" || Array.isArray(state.db.ids[scope])) state.db.ids[scope] = {};
+        });
+        ["countries", "products", "checked"].forEach((key) => {
+          if (!state.db[key] || typeof state.db[key] !== "object" || Array.isArray(state.db[key])) state.db[key] = {};
+        });
+        ["countries", "products", "skus", "bundles"].forEach((scope) => {
+          if (!state.db.checked[scope] || typeof state.db.checked[scope] !== "object" || Array.isArray(state.db.checked[scope])) state.db.checked[scope] = {};
+        });
+        const countriesRepaired = reconcileCountryRecords(state.db);
+        state.sourceDb = clone(state.db);
+        state.dirty = !!fromDraft || countriesRepaired;
+        if (fromDraft && countriesRepaired) {
+          persistDraft();
+        }
+        state.selectedCountryId = countries()[0] ? countries()[0].id : "";
+        state.selectedProductId = products()[0] ? products()[0].id : "";
+        state.selectedSkuProductId = skuProducts()[0] ? skuProducts()[0].id : "";
+        state.selectedBundleId = bundles()[0] ? bundles()[0].id : "";
+        renderAll();
+      }
+
+      async function loadDesktopFile() {
+        const result = await window.cairmDesktop.openDatabase();
+        if (result.canceled) return;
+        try {
+          loadIntoState(JSON.parse(result.content), true);
+          markDirty();
+          els.status.textContent = "JSON loaded";
+        } catch (error) {
+          els.status.textContent = `JSON import error: ${error.message}`;
+        }
+      }
+
+      async function loadDb() {
+        const draft = localStorage.getItem(STORAGE_KEY);
+        if (draft) {
+          try {
+            loadIntoState(JSON.parse(draft), true);
+            return;
+          } catch (error) {
+            localStorage.removeItem(STORAGE_KEY);
+            console.warn("Invalid CairmDB draft ignored.", error);
+          }
+        }
+        if (window.cairmDesktop) {
+          try {
+            const content = await window.cairmDesktop.loadDefaultDatabase();
+            loadIntoState(JSON.parse(content), false);
+            return;
+          } catch (error) {
+            els.status.textContent = `Default database load error: ${error.message}`;
+            return;
+          }
+        }
+        els.status.textContent = "Import a CairmDB.json file to get started.";
+      }
+
+      els.tabs.forEach((tab) => tab.addEventListener("click", () => setView(tab.dataset.view)));
+      els.countrySearch.addEventListener("input", renderCountryList);
+      function renderFilteredList(scope) {
+        if (scope === "countries") renderCountryList();
+        else if (scope === "products") renderProductList();
+        else if (scope === "skus") renderSkuProductList();
+        else if (scope === "bundles") renderBundleList();
+      }
+
+      function updateFilterButton(scope) {
+        const button = els.listFilterButtons.find((item) => item.dataset.listFilterButton === scope);
+        if (button) button.classList.toggle("is-active", Object.values(state.listFilters[scope] || {}).some(Boolean));
+      }
+
+      els.listFilterButtons.forEach((button) => button.addEventListener("click", () => {
+        const scope = button.dataset.listFilterButton;
+        const popover = els.listFilterPopovers.find((item) => item.dataset.listFilterPopover === scope);
+        if (!popover) return;
+        const willOpen = popover.hidden;
+        els.listFilterPopovers.forEach((item) => { item.hidden = true; });
+        els.listFilterButtons.forEach((item) => item.setAttribute("aria-expanded", "false"));
+        popover.hidden = !willOpen;
+        button.setAttribute("aria-expanded", String(willOpen));
+      }));
+      els.listFilterInputs.forEach((input) => input.addEventListener("change", () => {
+        const [scope, filter] = input.dataset.listFilter.split(":");
+        state.listFilters[scope][filter] = input.checked;
+        updateFilterButton(scope);
+        renderFilteredList(scope);
+      }));
+      document.addEventListener("click", (event) => {
+        if (event.target.closest(".filter-menu")) return;
+        els.listFilterPopovers.forEach((popover) => { popover.hidden = true; });
+        els.listFilterButtons.forEach((button) => button.setAttribute("aria-expanded", "false"));
+      });
+      els.countrySort.addEventListener("change", () => {
+        state.countrySort = els.countrySort.value;
+        renderWws();
+      });
+      els.productSearch.addEventListener("input", renderProductList);
+      els.productSort.addEventListener("change", () => {
+        state.productSort = els.productSort.value;
+        renderGa();
+      });
+      els.skuProductSearch.addEventListener("input", renderSkuProductList);
+      els.skuProductSort.addEventListener("change", () => {
+        state.skuProductSort = els.skuProductSort.value;
+        renderSkuView();
+      });
+      els.bundleSearch.addEventListener("input", renderBundleList);
+      els.bundleSort.addEventListener("change", () => {
+        state.bundleSort = els.bundleSort.value;
+        renderBundlesView();
+      });
+      els.exportDb.addEventListener("click", exportDb);
+      els.settingsButton.addEventListener("click", () => {
+        els.settingsModal.showModal();
+      });
+      els.closeSettings.addEventListener("click", () => els.settingsModal.close());
+      els.settingsModal.addEventListener("click", (event) => {
+        if (event.target === els.settingsModal) els.settingsModal.close();
+      });
+      els.resetValidationButtons.forEach((button) => button.addEventListener("click", () => {
+        const scope = button.dataset.resetValidation;
+        const label = { countries: "countries", products: "products", skus: "SKUs", bundles: "bundles" }[scope];
+        if (!state.db || !confirm(`Clear all ${label} checks?`)) return;
+        state.db.checked[scope] = {};
+        markDirty();
+        renderAll();
+      }));
+      els.downloadDb.addEventListener("click", () => { void exportDbFile(); });
+      els.newCountry.addEventListener("click", addCountry);
+      els.newProduct.addEventListener("click", addProduct);
+      els.newSkuProduct.addEventListener("click", addSkuProduct);
+      els.importButton.addEventListener("click", () => {
+        if (window.cairmDesktop) void loadDesktopFile();
+        else els.importDb.click();
+      });
+      els.importDb.addEventListener("change", async () => {
+        const file = els.importDb.files && els.importDb.files[0];
+        if (!file) return;
+        try {
+          loadIntoState(JSON.parse(await file.text()), true);
+          markDirty();
+          els.status.textContent = "JSON imported";
+        } catch (error) {
+          els.status.textContent = `JSON import error: ${error.message}`;
+        } finally {
+          els.importDb.value = "";
+        }
+      });
+      els.newBundle.addEventListener("click", newBundle);
+
+      loadDb();
+    })();
+  </script>
+</body>
+</html>
