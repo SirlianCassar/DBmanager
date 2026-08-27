@@ -1165,13 +1165,14 @@
       .home-detail { grid-template-columns: 1fr; gap: 5px; }
     }
   </style>
+  <link rel="icon" type="image/png" href="../icons/app-icon.png">
   <link rel="stylesheet" href="rework.css">
 </head>
 <body>
   <div class="app">
     <header>
       <div class="topbar">
-        <h1><span>DBmanager</span><span class="version-badge" title="Version de l’application">v1.0.1</span></h1>
+        <h1><span>DBmanager</span><span class="version-badge" title="Version de l’application">v1.0.2</span></h1>
         <div class="status" id="status" aria-live="polite"></div>
         <div class="top-actions">
           <input id="importDb" type="file" accept="application/json,.json" hidden>
@@ -1249,8 +1250,8 @@
           <aside class="panel">
             <div class="panel-head">
               <div class="head-row">
-                <div class="list-heading"><h2>SKU products</h2><select id="skuProductSort" class="list-sort-select" aria-label="Sort SKU products"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option></select></div>
-                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="skus" title="Filter SKUs" aria-label="Filter SKUs" aria-expanded="false" aria-controls="skuFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="skuFilterPopover" data-list-filter-popover="skus" hidden><label><input type="checkbox" data-list-filter="skus:validated"> Checked</label><label><input type="checkbox" data-list-filter="skus:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="skus:empty"> No data</label></div></div><button type="button" class="icon primary" id="newSkuProduct" title="Create SKU product" aria-label="Create SKU product"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+                <div class="list-heading"><h2>Products</h2><select id="skuProductSort" class="list-sort-select" aria-label="Sort products"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option></select></div>
+                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="skus" title="Filter SKUs" aria-label="Filter SKUs" aria-expanded="false" aria-controls="skuFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="skuFilterPopover" data-list-filter-popover="skus" hidden><label><input type="checkbox" data-list-filter="skus:validated"> Checked</label><label><input type="checkbox" data-list-filter="skus:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="skus:empty"> No data</label></div></div></div>
               </div>
               <div class="sort-row">
                 <input id="skuProductSearch" type="search" autocomplete="off" placeholder="Search product or SKU...">
@@ -1271,7 +1272,7 @@
             <div class="panel-head">
               <div class="head-row">
                 <div class="list-heading"><h2>Bundles</h2><select id="bundleSort" class="list-sort-select" aria-label="Sort bundles"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option></select></div>
-                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="bundles" title="Filter bundles" aria-label="Filter bundles" aria-expanded="false" aria-controls="bundleFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="bundleFilterPopover" data-list-filter-popover="bundles" hidden><label><input type="checkbox" data-list-filter="bundles:validated"> Checked</label><label><input type="checkbox" data-list-filter="bundles:unvalidated"> Not checked</label></div></div><button type="button" class="icon primary" id="newBundle" title="Create bundle" aria-label="Create bundle"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="bundles" title="Filter bundles" aria-label="Filter bundles" aria-expanded="false" aria-controls="bundleFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="bundleFilterPopover" data-list-filter-popover="bundles" hidden><label><input type="checkbox" data-list-filter="bundles:validated"> Checked</label><label><input type="checkbox" data-list-filter="bundles:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="bundles:empty"> No products</label></div></div><button type="button" class="icon primary" id="newBundle" title="Create bundle" aria-label="Create bundle"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
               </div>
               <div class="sort-row">
                 <input id="bundleSearch" type="search" autocomplete="off" placeholder="Search bundle...">
@@ -1311,7 +1312,7 @@
       const ZONES = ["europe", "usa", "canada", "hong_kong_taiwan", "australia", "rest_of_world"];
       const STATUS = ["yes", "no", "temp"];
       const EXCHANGE_STATUS = ["retailer", "us", "temp", "no"];
-      const state = { db: null, sourceDb: null, activeView: "home", selectedCountryId: "", selectedProductId: "", selectedSkuProductId: "", selectedBundleId: "", previousCountryId: "", previousProductId: "", previousSkuProductId: "", previousBundleId: "", selectedZone: "europe", countrySort: "alpha", productSort: "alpha", skuProductSort: "alpha", bundleSort: "alpha", bundleEditorDraft: null, listFilters: { countries: { validated: false, unvalidated: false, empty: false }, products: { validated: false, unvalidated: false, empty: false }, skus: { validated: false, unvalidated: false, empty: false }, bundles: { validated: false, unvalidated: false } }, dirty: false };
+      const state = { db: null, sourceDb: null, activeView: "home", selectedCountryId: "", selectedProductId: "", selectedSkuProductId: "", selectedBundleId: "", previousCountryId: "", previousProductId: "", previousSkuProductId: "", previousBundleId: "", selectedZone: "europe", countrySort: "alpha", productSort: "alpha", skuProductSort: "alpha", bundleSort: "alpha", countryCreationDraft: null, productCreationDraft: null, bundleCreationDraft: null, bundleEditorDraft: null, listFilters: { countries: { validated: false, unvalidated: false, empty: false }, products: { validated: false, unvalidated: false, empty: false }, skus: { validated: false, unvalidated: false, empty: false }, bundles: { validated: false, unvalidated: false, empty: false } }, dirty: false };
       let copyFeedbackTimer = 0;
       let draftSaveTimer = 0;
       const $ = (id) => document.getElementById(id);
@@ -1340,7 +1341,6 @@
         productList: $("productList"),
         productEditor: $("productEditor"),
         newProduct: $("newProduct"),
-        newSkuProduct: $("newSkuProduct"),
         skuProductSearch: $("skuProductSearch"),
         skuProductSort: $("skuProductSort"),
         skuProductList: $("skuProductList"),
@@ -1695,13 +1695,71 @@
       }
 
       function countryName(id) {
+        if (state.countryCreationDraft && state.countryCreationDraft.id === id) {
+          return text(state.countryCreationDraft.name) || "New country";
+        }
         const meta = ids("countries")[id];
         return text(meta && (meta.name || meta.label_en || meta.label_fr)) || id;
       }
 
       function productName(id) {
+        if (state.productCreationDraft && state.productCreationDraft.id === id) {
+          return text(state.productCreationDraft.name) || "New product";
+        }
         const meta = ids("products")[id];
         return text(meta && meta.name) || id;
+      }
+
+      function isCountryCreationDraft(id) {
+        return !!(state.countryCreationDraft && state.countryCreationDraft.id === id);
+      }
+
+      function isProductCreationDraft(id) {
+        return !!(state.productCreationDraft && state.productCreationDraft.id === id);
+      }
+
+      function entityNameValues(scope, excludedId = "") {
+        return Object.entries(ids(scope)).flatMap(([id, meta]) => {
+          if (id === excludedId) return [];
+          const primaryNames = scope === "countries"
+            ? [meta && meta.name, meta && meta.label_en, meta && meta.label_fr]
+            : [meta && meta.name];
+          return [...primaryNames, ...((meta && Array.isArray(meta.aliases)) ? meta.aliases : [])]
+            .map(normalize)
+            .filter(Boolean);
+        });
+      }
+
+      function clearNameValidation(inputId, errorId) {
+        const input = $(inputId);
+        const error = $(errorId);
+        if (input) input.removeAttribute("aria-invalid");
+        if (error) {
+          error.hidden = true;
+          error.textContent = "";
+        }
+      }
+
+      function validateEntityName(scope, id, name, inputId, errorId) {
+        const value = text(name);
+        let message = "";
+        if (!value) message = "Name is required.";
+        else if (entityNameValues(scope, id).includes(normalize(value))) message = "This name is already in use.";
+        if (!message) {
+          clearNameValidation(inputId, errorId);
+          return true;
+        }
+        const input = $(inputId);
+        const error = $(errorId);
+        if (input) {
+          input.setAttribute("aria-invalid", "true");
+          input.focus();
+        }
+        if (error) {
+          error.textContent = message;
+          error.hidden = false;
+        }
+        return false;
       }
 
       function nextScopedId(scope, prefix) {
@@ -1776,6 +1834,41 @@
         renderStatus();
       }
 
+      function bundleEditorHasChanges() {
+        const draft = state.bundleEditorDraft;
+        const current = draft && ids("bundles")[draft.id];
+        if (!draft || !current || (state.bundleCreationDraft && state.bundleCreationDraft.id === draft.id)) return false;
+        const currentProducts = Array.isArray(current.products) ? current.products : [];
+        const draftProducts = Array.isArray(draft.products) ? draft.products : [];
+        return text(draft.name) !== text(current.name) || JSON.stringify(draftProducts) !== JSON.stringify(currentProducts);
+      }
+
+      function pendingWorkLabels() {
+        const labels = [];
+        if (state.countryCreationDraft) labels.push("country creation");
+        if (state.productCreationDraft) labels.push("product creation");
+        if (state.bundleCreationDraft) labels.push("bundle creation");
+        if (bundleEditorHasChanges()) labels.push("unsaved bundle changes");
+        return labels;
+      }
+
+      function confirmPendingWork(action, consequence) {
+        const pending = pendingWorkLabels();
+        if (!pending.length) return true;
+        return confirm(`Pending work: ${pending.join(", ")}.\n\n${consequence}\n\nContinue ${action}?`);
+      }
+
+      function updateBundleEditControls() {
+        if (!state.bundleEditorDraft || (state.bundleCreationDraft && state.selectedBundleId === state.bundleCreationDraft.id)) return;
+        const changed = bundleEditorHasChanges();
+        const badge = $("bundleUnsavedBadge");
+        const saveButton = $("saveBundle");
+        const cancelButton = $("cancelBundleEdit");
+        if (badge) badge.hidden = !changed;
+        if (saveButton) saveButton.disabled = !changed;
+        if (cancelButton) cancelButton.disabled = !changed;
+      }
+
       function scheduleDraftPersistence() {
         clearTimeout(draftSaveTimer);
         draftSaveTimer = window.setTimeout(() => {
@@ -1802,6 +1895,7 @@
       }
 
       function ensureCountry(id) {
+        if (isCountryCreationDraft(id)) return state.countryCreationDraft.record;
         if (!state.db.countries[id] || typeof state.db.countries[id] !== "object" || Array.isArray(state.db.countries[id])) {
           state.db.countries[id] = defaultCountryRecord();
         }
@@ -1815,6 +1909,7 @@
       }
 
       function ensureProduct(id) {
+        if (isProductCreationDraft(id)) return state.productCreationDraft.record;
         if (!state.db.products[id] || typeof state.db.products[id] !== "object" || Array.isArray(state.db.products[id])) {
           state.db.products[id] = { zones: {}, note: "" };
         }
@@ -1868,9 +1963,31 @@
         els.listFilterButtons.forEach((button) => button.setAttribute("aria-expanded", "false"));
       }
 
+      function listSearchElement(scope) {
+        return { countries: els.countrySearch, products: els.productSearch, skus: els.skuProductSearch, bundles: els.bundleSearch }[scope];
+      }
+
+      function captureListContext(scope) {
+        const search = listSearchElement(scope);
+        return { search: search ? search.value : "", filters: { ...(state.listFilters[scope] || {}) } };
+      }
+
+      function restoreListContext(scope, context) {
+        if (!context) return;
+        const search = listSearchElement(scope);
+        if (search) search.value = context.search || "";
+        Object.keys(state.listFilters[scope] || {}).forEach((filter) => {
+          state.listFilters[scope][filter] = !!(context.filters && context.filters[filter]);
+        });
+        els.listFilterInputs.forEach((input) => {
+          const [inputScope, filter] = input.dataset.listFilter.split(":");
+          if (inputScope === scope) input.checked = !!state.listFilters[scope][filter];
+        });
+        updateFilterButton(scope);
+      }
+
       function clearListContext(scope) {
-        const searchByScope = { countries: els.countrySearch, products: els.productSearch, skus: els.skuProductSearch, bundles: els.bundleSearch };
-        const search = searchByScope[scope];
+        const search = listSearchElement(scope);
         if (search) search.value = "";
         Object.keys(state.listFilters[scope] || {}).forEach((filter) => {
           state.listFilters[scope][filter] = false;
@@ -1884,58 +2001,115 @@
 
       function addCountry() {
         if (!state.db) return;
+        if (state.countryCreationDraft) {
+          state.selectedCountryId = state.countryCreationDraft.id;
+          renderWws();
+          $("countryName").focus();
+          return;
+        }
+        const listContext = captureListContext("countries");
         clearListContext("countries");
         state.previousCountryId = state.selectedCountryId;
         const id = nextScopedId("countries", "C");
-        const name = `New country ${id}`;
-        state.db.ids.countries[id] = { name, label_fr: name, aliases: [name], _source: { file: "cairmdb-manager" } };
-        state.db.countries[id] = {
-          ga_zone: "rest_of_world",
-          rma: { status: "no", warranty_duration: "check_retailer" },
-          spare_parts: { status: "no", warranty_duration: 2 },
-          note: ""
+        state.countryCreationDraft = {
+          id,
+          name: "",
+          listContext,
+          record: {
+            ga_zone: "rest_of_world",
+            rma: { status: "no", warranty_duration: "check_retailer" },
+            spare_parts: { status: "no", warranty_duration: 2 },
+            note: ""
+          }
         };
         state.selectedCountryId = id;
-        markDirty();
         renderWws();
+        $("countryName").focus();
       }
 
       function addProduct() {
         if (!state.db) return;
+        if (state.productCreationDraft) {
+          state.selectedProductId = state.productCreationDraft.id;
+          renderGa();
+          $("productName").focus();
+          return;
+        }
+        const listContexts = { products: captureListContext("products"), skus: captureListContext("skus") };
         clearListContext("products");
         clearListContext("skus");
         state.previousProductId = state.selectedProductId;
         const id = nextScopedId("products", "P");
-        const name = `New product ${id}`;
-        state.db.ids.products[id] = { name, aliases: [name], crm_id: "", _source: { file: "cairmdb-manager" } };
-        ensureProduct(id);
+        state.productCreationDraft = { id, name: "", listContexts, record: { zones: {}, note: "" } };
         state.selectedProductId = id;
-        markDirty();
         renderGa();
+        $("productName").focus();
       }
 
-      function addSkuProduct() {
-        if (!state.db) return;
-        clearListContext("skus");
-        clearListContext("products");
-        state.previousProductId = state.selectedProductId;
-        state.previousSkuProductId = state.selectedSkuProductId;
-        const id = nextScopedId("products", "P");
-        const name = `New SKU product ${id}`;
-        state.db.ids.products[id] = { name, aliases: [name], crm_id: "", _source: { file: "cairmdb-manager" } };
-        ensureProduct(id);
-        state.selectedProductId = id;
-        state.selectedSkuProductId = id;
+      function saveCountry() {
+        const draft = state.countryCreationDraft;
+        if (!draft) return;
+        const name = text(draft.name);
+        if (!validateEntityName("countries", draft.id, name, "countryName", "countryNameError")) return;
+        state.db.ids.countries[draft.id] = { name, label_fr: name, aliases: [name], _source: { file: "cairmdb-manager" } };
+        state.db.countries[draft.id] = clone(draft.record);
+        state.selectedCountryId = draft.id;
+        state.countryCreationDraft = null;
         markDirty();
-        setView("sku");
+        renderAll();
+      }
+
+      function saveProduct() {
+        const draft = state.productCreationDraft;
+        if (!draft) return;
+        const name = text(draft.name);
+        if (!validateEntityName("products", draft.id, name, "productName", "productNameError")) return;
+        state.db.ids.products[draft.id] = { name, aliases: [name], crm_id: "", _source: { file: "cairmdb-manager" } };
+        state.db.products[draft.id] = clone(draft.record);
+        state.selectedProductId = draft.id;
+        state.productCreationDraft = null;
+        markDirty();
+        renderAll();
+      }
+
+      function cancelCountryCreation() {
+        if (!state.countryCreationDraft) return;
+        const listContext = state.countryCreationDraft.listContext;
+        const fallbackId = ids("countries")[state.previousCountryId]
+          ? state.previousCountryId
+          : countries()[0] ? countries()[0].id : "";
+        state.countryCreationDraft = null;
+        state.selectedCountryId = fallbackId;
+        state.previousCountryId = "";
+        restoreListContext("countries", listContext);
+        renderWws();
+      }
+
+      function cancelProductCreation() {
+        if (!state.productCreationDraft) return;
+        const listContexts = state.productCreationDraft.listContexts;
+        const fallbackId = ids("products")[state.previousProductId]
+          ? state.previousProductId
+          : products()[0] ? products()[0].id : "";
+        state.productCreationDraft = null;
+        state.selectedProductId = fallbackId;
+        state.previousProductId = "";
+        restoreListContext("products", listContexts && listContexts.products);
+        restoreListContext("skus", listContexts && listContexts.skus);
         renderGa();
-        renderSkuView();
       }
 
       function deleteProduct(id) {
         if (!id || !ids("products")[id]) return;
         const name = productName(id);
-        if (!confirm(`Delete product ${name} (${id})?`)) return;
+        const bundleCount = Object.values(ids("bundles")).filter((bundle) => Array.isArray(bundle.products) && bundle.products.includes(id)).length;
+        const skuData = readProductSkuData(state.db.products[id]);
+        const hasSkuData = !!(skuData.global || Object.keys(skuData.regions).length || Object.keys(skuData.countries).length);
+        const consequences = [
+          bundleCount ? `${bundleCount} bundle${bundleCount === 1 ? "" : "s"} will lose this product.` : "",
+          hasSkuData ? "Its SKU configuration will also be deleted." : ""
+        ].filter(Boolean);
+        if (!confirm(`Delete product ${name} (${id})?${consequences.length ? `\n\n${consequences.join("\n")}` : ""}`)) return;
         delete state.db.ids.products[id];
         delete state.db.products[id];
         if (state.db.checked && state.db.checked.products) delete state.db.checked.products[id];
@@ -1957,7 +2131,21 @@
 
       function deleteCountry(id) {
         if (!id || !ids("countries")[id]) return;
-        if (!confirm(`Delete country ${countryName(id)} (${id})?`)) return;
+        let skuReferenceCount = 0;
+        let feeReferenceCount = 0;
+        Object.values(state.db.products || {}).forEach((product) => {
+          if (!product || typeof product !== "object" || Array.isArray(product)) return;
+          if (Object.prototype.hasOwnProperty.call(readProductSkuData(product).countries, id)) skuReferenceCount += 1;
+          Object.values(product.zones || {}).forEach((zone) => {
+            const fees = zone && zone.rma && zone.rma.extra_transport_fees;
+            if (fees && Object.prototype.hasOwnProperty.call(fees, id)) feeReferenceCount += 1;
+          });
+        });
+        const consequences = [
+          skuReferenceCount ? `${skuReferenceCount} product SKU exception${skuReferenceCount === 1 ? "" : "s"} will be removed.` : "",
+          feeReferenceCount ? `${feeReferenceCount} country-specific fee${feeReferenceCount === 1 ? "" : "s"} will be removed.` : ""
+        ].filter(Boolean);
+        if (!confirm(`Delete country ${countryName(id)} (${id})?${consequences.length ? `\n\n${consequences.join("\n")}` : ""}`)) return;
         delete state.db.ids.countries[id];
         delete state.db.countries[id];
         if (state.db.checked && state.db.checked.countries) delete state.db.checked.countries[id];
@@ -2015,17 +2203,32 @@
           <div><strong>${countryData.filter((country) => country.dataState === "empty").length + productsWithoutData}</strong><span>Records without data</span></div>
         `;
         const details = [
-          ["Countries", counts.countries - checkedCount("countries"), countryData.filter((country) => country.dataState === "empty").length, "without data"],
-          ["GA products", counts.products - checkedCount("products"), productsWithoutData, "without data"],
-          ["SKU products", counts.skus - checkedCount("skus"), skuWithoutData, "without SKU data"],
-          ["Bundles", counts.bundles - checkedCount("bundles"), bundlesWithoutProducts, "without products"]
+          ["countries", "Countries", counts.countries - checkedCount("countries"), countryData.filter((country) => country.dataState === "empty").length, "without data"],
+          ["products", "GA products", counts.products - checkedCount("products"), productsWithoutData, "without data"],
+          ["skus", "SKU products", counts.skus - checkedCount("skus"), skuWithoutData, "without SKU data"],
+          ["bundles", "Bundles", counts.bundles - checkedCount("bundles"), bundlesWithoutProducts, "without products"]
         ];
-        detailsBox.innerHTML = details.map(([labelText, notChecked, missing, missingLabel]) => `<div class="home-detail"><strong>${labelText}</strong><span>${notChecked} not checked</span><span class="attention">${missing} ${missingLabel}</span></div>`).join("");
+        detailsBox.innerHTML = details.map(([scope, labelText, notChecked, missing, missingLabel]) => `<div class="home-detail"><strong>${labelText}</strong><button type="button" class="home-detail-action" data-home-filter="${scope}:unvalidated" ${notChecked ? "" : "disabled"}>${notChecked} not checked</button><button type="button" class="home-detail-action attention" data-home-filter="${scope}:empty" ${missing ? "" : "disabled"}>${missing} ${missingLabel}</button></div>`).join("");
+        detailsBox.querySelectorAll("[data-home-filter]").forEach((button) => button.addEventListener("click", () => {
+          const [scope, filter] = button.dataset.homeFilter.split(":");
+          openHomeFilter(scope, filter);
+        }));
         const formatDate = (value) => {
           const date = new Date(value);
           return Number.isNaN(date.getTime()) ? "Not available" : new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(date);
         };
         datesBox.innerHTML = `<span><strong>Database updated:</strong> ${formatDate(state.db.updatedAt)}</span>`;
+      }
+
+      function openHomeFilter(scope, filter) {
+        clearListContext(scope);
+        if (!Object.prototype.hasOwnProperty.call(state.listFilters[scope] || {}, filter)) return;
+        state.listFilters[scope][filter] = true;
+        const input = els.listFilterInputs.find((item) => item.dataset.listFilter === `${scope}:${filter}`);
+        if (input) input.checked = true;
+        updateFilterButton(scope);
+        const view = { countries: "wws", products: "ga", skus: "sku", bundles: "bundles" }[scope];
+        setView(view);
       }
 
       function setView(view) {
@@ -2042,6 +2245,8 @@
       }
 
       function renderCountryList() {
+        els.newCountry.disabled = !!state.countryCreationDraft;
+        els.newCountry.title = state.countryCreationDraft ? "Finish or cancel the current country first" : "Create country";
         const query = normalize(els.countrySearch.value);
         const visible = countries().filter((country) => {
           const matchesQuery = !query || normalize([
@@ -2049,10 +2254,14 @@
           ].join(" ")).includes(query);
           return matchesQuery && matchesListFilters("countries", country.id, { empty: country.dataState === "empty" });
         });
-        els.countryList.innerHTML = visible.map(({ id, name, record, dataState }) => `
-          <button type="button" class="item${id === state.selectedCountryId ? " is-active" : ""}${checkedClass("countries", id)}${dataState === "empty" ? " has-no-data" : ""}" data-country="${esc(id)}">
+        const draft = state.countryCreationDraft
+          ? [{ id: state.countryCreationDraft.id, name: text(state.countryCreationDraft.name) || "New country", record: state.countryCreationDraft.record, dataState: "draft", isDraft: true }]
+          : [];
+        const rows = [...draft, ...visible];
+        els.countryList.innerHTML = rows.map(({ id, name, record, dataState, isDraft }) => `
+          <button type="button" class="item${id === state.selectedCountryId ? " is-active" : ""}${isDraft ? " is-draft" : checkedClass("countries", id)}${dataState === "empty" ? " has-no-data" : ""}" data-country="${esc(id)}">
             <span class="title-row"><strong>${esc(name)}</strong><span class="meta">${esc(id)} · ${esc(label(record.ga_zone))}</span></span>
-            <span class="country-statuses"><span class="badge ${esc(record.spare_parts && record.spare_parts.status)}">SP ${esc(label(record.spare_parts && record.spare_parts.status))}</span><span class="badge ${esc(record.rma && record.rma.status)}">RMA ${esc(label(record.rma && record.rma.status))}</span>${text(record.note) ? '<span class="badge note-badge">Note</span>' : ""}</span>
+            <span class="country-statuses">${isDraft ? '<span class="badge temp">Temporary</span>' : `<span class="badge ${esc(record.spare_parts && record.spare_parts.status)}">SP ${esc(label(record.spare_parts && record.spare_parts.status))}</span><span class="badge ${esc(record.rma && record.rma.status)}">RMA ${esc(label(record.rma && record.rma.status))}</span>${text(record.note) ? '<span class="badge note-badge">Note</span>' : ""}`}</span>
           </button>
         `).join("") || '<div class="empty">No countries</div>';
         els.countryList.querySelectorAll("[data-country]").forEach((button) => button.addEventListener("click", () => {
@@ -2063,13 +2272,15 @@
       }
 
       function renderCountryEditor() {
-        const id = state.selectedCountryId || (countries()[0] && countries()[0].id);
+        const selectedIsDraft = isCountryCreationDraft(state.selectedCountryId);
+        const id = selectedIsDraft ? state.selectedCountryId : state.selectedCountryId || (countries()[0] && countries()[0].id);
         if (!id) {
           els.countryEditor.innerHTML = '<div class="empty">No country loaded</div>';
           return;
         }
         state.selectedCountryId = id;
-        const sourceRecord = state.db.countries[id];
+        const isDraft = isCountryCreationDraft(id);
+        const sourceRecord = isDraft ? state.countryCreationDraft.record : state.db.countries[id];
         const record = sourceRecord && typeof sourceRecord === "object" && !Array.isArray(sourceRecord)
           ? sourceRecord
           : defaultCountryRecord();
@@ -2085,13 +2296,16 @@
             <div class="editor-header">
               <div class="editor-title">
                 <div class="title-inline">
-                  <div class="row-title">${esc(countryName(id))}</div>
+                  ${isDraft ? `<input class="row-title title-name-input" id="countryName" value="${esc(state.countryCreationDraft.name)}" placeholder="New country" aria-label="Country name">` : `<div class="row-title">${esc(countryName(id))}</div>`}
                   <div class="editor-id">${esc(id)}</div>
-                  ${verifiedCheckbox("countries", id)}
+                  ${isDraft ? '<span class="badge temp">Temporary</span>' : verifiedCheckbox("countries", id)}
                 </div>
+                ${isDraft ? '<div class="name-validation" id="countryNameError" role="alert" hidden></div>' : ""}
                 ${countryZoneTabsHtml(record.ga_zone)}
               </div>
-              <div class="actions"><button type="button" class="danger" id="deleteCountry">Delete</button></div>
+              <div class="actions">
+                ${isDraft ? '<button type="button" class="primary" id="saveCountry">Save country</button><button type="button" id="cancelCountry">Cancel</button>' : '<button type="button" class="danger" id="deleteCountry">Delete</button>'}
+              </div>
             </div>
             <div class="editor-section">
               <div class="section-title">Availability</div>
@@ -2106,19 +2320,29 @@
             </div>
           </div>
         `;
-        bindVerifiedCheckbox(els.countryEditor, () => {
-          renderCountryList();
-          renderCountryEditor();
-        });
-        $("deleteCountry").addEventListener("click", () => deleteCountry(id));
+        if (!isDraft) {
+          bindVerifiedCheckbox(els.countryEditor, () => {
+            renderCountryList();
+            renderCountryEditor();
+          });
+          $("deleteCountry").addEventListener("click", () => deleteCountry(id));
+        } else {
+          $("countryName").addEventListener("input", (event) => {
+            state.countryCreationDraft.name = event.target.value;
+            clearNameValidation("countryName", "countryNameError");
+            renderCountryList();
+          });
+          $("saveCountry").addEventListener("click", saveCountry);
+          $("cancelCountry").addEventListener("click", cancelCountryCreation);
+        }
         bindServiceToggle(els.countryEditor, (name) => ensureCountry(id)[name], () => {
-          markDirty();
+          if (!isDraft) markDirty();
           renderCountryList();
           renderCountryEditor();
         });
         els.countryEditor.querySelectorAll("[data-country-zone]").forEach((button) => button.addEventListener("click", () => {
           ensureCountry(id).ga_zone = button.dataset.countryZone;
-          markDirty();
+          if (!isDraft) markDirty();
           renderWws();
         }));
         els.countryEditor.querySelectorAll("[data-country-field]").forEach((input) => {
@@ -2127,7 +2351,7 @@
           const target = ensureCountry(id);
           if (path.length === 1) target[path[0]] = input.value;
           else target[path[0]][path[1]] = input.value;
-          markDirty();
+          if (!isDraft) markDirty();
           renderCountryList();
           };
           input.addEventListener("input", updateCountryField);
@@ -2136,7 +2360,7 @@
         const rmaCheckRetailerInput = $("rmaCheckRetailer");
         if (rmaCheckRetailerInput) rmaCheckRetailerInput.addEventListener("change", (event) => {
             ensureCountry(id).rma.warranty_duration = event.target.checked ? "check_retailer" : 2;
-            markDirty();
+            if (!isDraft) markDirty();
             renderCountryEditor();
           });
       }
@@ -2148,12 +2372,18 @@
       }
 
       function renderProductList() {
+        els.newProduct.disabled = !!state.productCreationDraft;
+        els.newProduct.title = state.productCreationDraft ? "Finish or cancel the current product first" : "Create product";
         const query = normalize(els.productSearch.value);
         const visible = products().filter((product) => matchesListFilters("products", product.id, { empty: !product.record }) && (!query || normalize([product.id, product.name, product.crmId, product.aliases.join(" ")].join(" ")).includes(query)));
-        els.productList.innerHTML = visible.map((product) => `
-          <button type="button" class="item${product.id === state.selectedProductId ? " is-active" : ""}${checkedClass("products", product.id)}${product.record ? "" : " has-no-data"}" data-product="${esc(product.id)}">
+        const draft = state.productCreationDraft
+          ? [{ id: state.productCreationDraft.id, name: text(state.productCreationDraft.name) || "New product", crmId: "", aliases: [], record: state.productCreationDraft.record, isDraft: true }]
+          : [];
+        const rows = [...draft, ...visible];
+        els.productList.innerHTML = rows.map((product) => `
+          <button type="button" class="item${product.id === state.selectedProductId ? " is-active" : ""}${product.isDraft ? " is-draft" : checkedClass("products", product.id)}${product.record ? "" : " has-no-data"}" data-product="${esc(product.id)}">
             <span class="title-row"><strong>${esc(product.name)}</strong><span class="meta">${esc(product.id)}</span></span>
-            ${productHasNote(product.record) ? '<span class="badge note-badge">Note</span>' : ""}
+            ${product.isDraft ? '<span class="badge temp">Temporary</span>' : productHasNote(product.record) ? '<span class="badge note-badge">Note</span>' : ""}
           </button>
         `).join("") || '<div class="empty">No products</div>';
         els.productList.querySelectorAll("[data-product]").forEach((button) => button.addEventListener("click", () => {
@@ -2238,13 +2468,15 @@
       }
 
       function renderProductEditor() {
-        const id = state.selectedProductId || (products()[0] && products()[0].id);
+        const selectedIsDraft = isProductCreationDraft(state.selectedProductId);
+        const id = selectedIsDraft ? state.selectedProductId : state.selectedProductId || (products()[0] && products()[0].id);
         if (!id) {
           els.productEditor.innerHTML = '<div class="empty">No product loaded</div>';
           return;
         }
         state.selectedProductId = id;
-        const product = hasProductGaData(state.db.products[id]) ? state.db.products[id] : null;
+        const isDraft = isProductCreationDraft(id);
+        const product = isDraft ? state.productCreationDraft.record : hasProductGaData(state.db.products[id]) ? state.db.products[id] : null;
         if (!product) {
           els.productEditor.innerHTML = `
             <div class="data-card">
@@ -2253,29 +2485,30 @@
                   <div class="title-inline">
                     <div class="row-title">${esc(productName(id))}</div>
                     <div class="editor-id">${esc(id)}</div>
-                    ${verifiedCheckbox("products", id)}
+                    ${isDraft ? '<span class="badge temp">Temporary</span>' : verifiedCheckbox("products", id)}
                   </div>
                   ${zoneTabsHtml()}
                 </div>
                 <div class="actions">
-                  <button type="button" id="initProductZone">Add data</button>
-                  <button type="button" class="danger" id="deleteProduct">Delete</button>
+                  ${isDraft ? '<button type="button" class="primary" id="saveProduct">Save product</button><button type="button" id="cancelProduct">Cancel</button>' : '<button type="button" id="initProductZone">Add data</button><button type="button" class="danger" id="deleteProduct">Delete</button>'}
                 </div>
               </div>
               <div class="empty">No data for this region</div>
             </div>
           `;
-          bindVerifiedCheckbox(els.productEditor, () => {
+          if (!isDraft) bindVerifiedCheckbox(els.productEditor, () => {
             renderProductList();
             renderProductEditor();
           });
           bindZoneTabs(els.productEditor);
-          $("initProductZone").addEventListener("click", () => {
-            ensureProductZone(id, state.selectedZone);
-            markDirty();
-            renderGa();
-          });
-          $("deleteProduct").addEventListener("click", () => deleteProduct(id));
+          if (!isDraft) {
+            $("initProductZone").addEventListener("click", () => {
+              ensureProductZone(id, state.selectedZone);
+              markDirty();
+              renderGa();
+            });
+            $("deleteProduct").addEventListener("click", () => deleteProduct(id));
+          }
           return;
         }
         const zone = zoneForDisplay(product.zones && product.zones[state.selectedZone]);
@@ -2296,14 +2529,15 @@
             <div class="editor-header">
               <div class="editor-title">
                 <div class="title-inline">
-                  <div class="row-title">${esc(productName(id))}</div>
+                  ${isDraft ? `<input class="row-title title-name-input" id="productName" value="${esc(state.productCreationDraft.name)}" placeholder="New product" aria-label="Product name">` : `<div class="row-title">${esc(productName(id))}</div>`}
                   <div class="editor-id">${esc(id)}</div>
-                  ${verifiedCheckbox("products", id)}
+                  ${isDraft ? '<span class="badge temp">Temporary</span>' : verifiedCheckbox("products", id)}
                 </div>
+                ${isDraft ? '<div class="name-validation" id="productNameError" role="alert" hidden></div>' : ""}
                 ${zoneTabsHtml()}
               </div>
               <div class="actions">
-                <button type="button" class="danger" id="deleteProduct">Delete</button>
+                ${isDraft ? '<button type="button" class="primary" id="saveProduct">Save product</button><button type="button" id="cancelProduct">Cancel</button>' : '<button type="button" class="danger" id="deleteProduct">Delete</button>'}
               </div>
             </div>
             <div class="product-form-layout">
@@ -2354,10 +2588,19 @@
             </div>
           </div>
         `;
-        bindVerifiedCheckbox(els.productEditor, () => {
+        if (!isDraft) bindVerifiedCheckbox(els.productEditor, () => {
           renderProductList();
           renderProductEditor();
         });
+        if (isDraft) {
+          $("productName").addEventListener("input", (event) => {
+            state.productCreationDraft.name = event.target.value;
+            clearNameValidation("productName", "productNameError");
+            renderProductList();
+          });
+          $("saveProduct").addEventListener("click", saveProduct);
+          $("cancelProduct").addEventListener("click", cancelProductCreation);
+        }
         bindZoneTabs(els.productEditor);
         bindServiceToggle(els.productEditor, (name) => {
           const targetZone = ensureProductZone(id, state.selectedZone);
@@ -2365,18 +2608,18 @@
           if (name === "paid") return targetZone.rma.paid;
           return targetZone.rma;
         }, () => {
-          markDirty();
+          if (!isDraft) markDirty();
           renderProductList();
           renderProductEditor();
         });
-        $("deleteProduct").addEventListener("click", () => deleteProduct(id));
+        if (!isDraft) $("deleteProduct").addEventListener("click", () => deleteProduct(id));
         els.productEditor.querySelectorAll("[data-product-field]").forEach((input) => {
           const updateProductField = () => {
           const value = input.dataset.productField === "exchange.comment"
             ? input.value
             : input.type === "number" && text(input.value) !== "" ? Number(input.value) : input.value || null;
           setPath(ensureProductZone(id, state.selectedZone), input.dataset.productField, value);
-          markDirty();
+          if (!isDraft) markDirty();
           renderProductList();
           };
           input.addEventListener("input", updateProductField);
@@ -2385,8 +2628,8 @@
         const globalProductNote = els.productEditor.querySelector("[data-product-global-note]");
         if (globalProductNote) {
           globalProductNote.addEventListener("input", () => {
-            state.db.products[id].note = globalProductNote.value;
-            markDirty();
+            product.note = globalProductNote.value;
+            if (!isDraft) markDirty();
             renderProductList();
           });
         }
@@ -2399,7 +2642,7 @@
             } else {
               delete exchange.comment;
             }
-            markDirty();
+            if (!isDraft) markDirty();
             renderProductEditor();
           });
         }
@@ -2409,7 +2652,7 @@
           row.querySelector("[data-remove-fee]").addEventListener("click", () => {
             const targetZone = ensureProductZone(id, state.selectedZone);
             delete targetZone.rma.extra_transport_fees[row.dataset.feeCountry];
-            markDirty();
+            if (!isDraft) markDirty();
             renderProductEditor();
           });
           idInput.addEventListener("change", () => {
@@ -2418,12 +2661,12 @@
             const value = targetZone.rma.extra_transport_fees[oldId];
             delete targetZone.rma.extra_transport_fees[oldId];
             targetZone.rma.extra_transport_fees[idInput.value] = value;
-            markDirty();
+            if (!isDraft) markDirty();
             renderProductEditor();
           });
           valueInput.addEventListener("input", () => {
             ensureProductZone(id, state.selectedZone).rma.extra_transport_fees[row.dataset.feeCountry] = valueInput.value;
-            markDirty();
+            if (!isDraft) markDirty();
           });
         });
         const addFeeButton = $("addFee");
@@ -2432,7 +2675,7 @@
           const firstCountry = countries().find((country) => !Object.prototype.hasOwnProperty.call(targetFees, country.id));
           if (!firstCountry) return;
           targetFees[firstCountry.id] = "";
-          markDirty();
+          if (!isDraft) markDirty();
           renderProductEditor();
         });
       }
@@ -2643,19 +2886,27 @@
       }
 
       function renderBundleList() {
+        els.newBundle.disabled = !!state.bundleCreationDraft;
+        els.newBundle.title = state.bundleCreationDraft ? "Finish or cancel the current bundle first" : "Create bundle";
         const query = normalize(els.bundleSearch.value);
-        const visible = bundles().filter((bundle) => matchesListFilters("bundles", bundle.id) && (!query || normalize([bundle.id, bundle.name, bundle.products.map(productName).join(" ")].join(" ")).includes(query)));
-        els.bundleList.innerHTML = visible.map((bundle) => `
-          <button type="button" class="item${bundle.id === state.selectedBundleId ? " is-active" : ""}${checkedClass("bundles", bundle.id)}" data-bundle="${esc(bundle.id)}">
+        const visible = bundles().filter((bundle) => matchesListFilters("bundles", bundle.id, { empty: !bundle.products.length }) && (!query || normalize([bundle.id, bundle.name, bundle.products.map(productName).join(" ")].join(" ")).includes(query)));
+        const draft = state.bundleCreationDraft
+          ? [{ id: state.bundleCreationDraft.id, name: text(state.bundleCreationDraft.name) || "New bundle", products: state.bundleCreationDraft.products || [], isDraft: true }]
+          : [];
+        const rows = [...draft, ...visible];
+        els.bundleList.innerHTML = rows.map((bundle) => `
+          <button type="button" class="item${bundle.id === state.selectedBundleId ? " is-active" : ""}${bundle.isDraft ? " is-draft" : checkedClass("bundles", bundle.id)}" data-bundle="${esc(bundle.id)}">
             <strong>${esc(bundle.name)}</strong>
             <span class="meta">${esc(bundle.id)} · ${bundle.products.length} product${bundle.products.length === 1 ? "" : "s"}</span>
+            ${bundle.isDraft ? '<span class="badge temp">Temporary</span>' : ""}
           </button>
         `).join("") || '<div class="empty">No bundles</div>';
         els.bundleList.querySelectorAll("[data-bundle]").forEach((button) => button.addEventListener("click", () => {
           if (state.selectedBundleId !== button.dataset.bundle) {
+            if (bundleEditorHasChanges() && !confirm("Discard the unsaved changes to this bundle?")) return;
             state.previousBundleId = state.selectedBundleId;
             state.selectedBundleId = button.dataset.bundle;
-            state.bundleEditorDraft = null;
+            if (!state.bundleCreationDraft || state.bundleCreationDraft.id !== button.dataset.bundle) state.bundleEditorDraft = null;
           }
           renderBundlesView();
         }));
@@ -2667,32 +2918,36 @@
 
       function renderBundleEditor() {
         const current = currentBundleRecord();
-        const selected = current && Array.isArray(current.products) ? current.products : [];
-        const editorBundleId = current ? state.selectedBundleId : nextBundleId();
-        if (!state.bundleEditorDraft || state.bundleEditorDraft.id !== editorBundleId) {
-          state.bundleEditorDraft = { id: editorBundleId, name: text(current && current.name), search: "" };
+        const creationDraft = state.bundleCreationDraft && state.bundleCreationDraft.id === state.selectedBundleId
+          ? state.bundleCreationDraft
+          : null;
+        if (!current && !creationDraft) {
+          els.bundleEditor.innerHTML = '<div class="empty">No bundle loaded</div>';
+          return;
         }
-        const editorDraft = state.bundleEditorDraft;
+        const editorBundleId = current ? state.selectedBundleId : creationDraft.id;
+        if (current && (!state.bundleEditorDraft || state.bundleEditorDraft.id !== editorBundleId)) {
+          state.bundleEditorDraft = { id: editorBundleId, name: text(current.name), search: "", products: [...(Array.isArray(current.products) ? current.products : [])] };
+        }
+        const editorDraft = creationDraft || state.bundleEditorDraft;
+        const selected = editorDraft.products || [];
+        const isDraft = !!creationDraft;
+        const hasChanges = !isDraft && bundleEditorHasChanges();
         els.bundleEditor.innerHTML = `
           <div class="data-card bundle-editor-card editor-form-card">
             <div class="editor-header">
               <div class="editor-title">
                 <div class="title-inline">
-                  <div class="row-title">${esc(editorDraft.name || current && current.name || "New bundle")}</div>
+                  <input class="row-title title-name-input" id="bundleName" value="${esc(editorDraft.name)}" placeholder="New bundle" aria-label="Bundle name">
                   <div class="editor-id">${esc(editorBundleId)}</div>
-                  ${current ? verifiedCheckbox("bundles", state.selectedBundleId) : ""}
+                  ${isDraft ? '<span class="badge temp">Temporary</span>' : verifiedCheckbox("bundles", state.selectedBundleId)}
+                  ${isDraft ? "" : `<span class="badge temp" id="bundleUnsavedBadge" ${hasChanges ? "" : "hidden"}>Unsaved</span>`}
                 </div>
+                <div class="name-validation" id="bundleNameError" role="alert" hidden></div>
               </div>
               <div class="actions">
-                <button type="button" class="primary" id="saveBundle">Save bundle</button>
-                ${current ? '<button type="button" class="danger" id="deleteBundle">Delete</button>' : ""}
-              </div>
-            </div>
-            <div class="editor-section">
-              <div class="section-title">Bundle details</div>
-              <div class="grid-2 bundle-details-grid">
-              <div class="field"><label>Bundle ID</label><input id="bundleId" value="${esc(editorBundleId)}" readonly></div>
-              <div class="field"><label>Custom name</label><input id="bundleName" value="${esc(editorDraft.name)}" placeholder="Bundle name"></div>
+                <button type="button" class="primary" id="saveBundle" ${hasChanges || isDraft ? "" : "disabled"}>Save bundle</button>
+                ${isDraft ? '<button type="button" id="cancelBundle">Cancel</button>' : `<button type="button" id="cancelBundleEdit" ${hasChanges ? "" : "disabled"}>Cancel</button><button type="button" class="danger" id="deleteBundle">Delete</button>`}
               </div>
             </div>
             <div class="editor-section bundle-product-section">
@@ -2714,17 +2969,20 @@
         });
         renderBundleProductResults();
         $("bundleProductSearch").addEventListener("input", (event) => {
-          if (state.bundleEditorDraft && state.bundleEditorDraft.id === editorBundleId) {
-            state.bundleEditorDraft.search = event.target.value;
-          }
+          editorDraft.search = event.target.value;
           renderBundleProductResults();
         });
         $("bundleName").addEventListener("input", (event) => {
-          if (state.bundleEditorDraft && state.bundleEditorDraft.id === editorBundleId) {
-            state.bundleEditorDraft.name = event.target.value;
-          }
+          editorDraft.name = event.target.value;
+          clearNameValidation("bundleName", "bundleNameError");
+          renderBundleList();
+          updateBundleEditControls();
         });
         $("saveBundle").addEventListener("click", saveBundle);
+        const cancelButton = $("cancelBundle");
+        if (cancelButton) cancelButton.addEventListener("click", cancelBundleCreation);
+        const cancelEditButton = $("cancelBundleEdit");
+        if (cancelEditButton) cancelEditButton.addEventListener("click", cancelBundleEditing);
         const deleteButton = $("deleteBundle");
         if (deleteButton) deleteButton.addEventListener("click", deleteBundle);
         els.bundleEditor.querySelectorAll("[data-selected-product]").forEach((row) => {
@@ -2755,17 +3013,19 @@
       }
 
       function saveBundle() {
-        const id = text(state.bundleEditorDraft && state.bundleEditorDraft.id) || text($("bundleId").value) || nextBundleId();
-        const name = text(state.bundleEditorDraft && state.bundleEditorDraft.name);
-        if (!name) {
-          $("bundleName").focus();
-          return;
-        }
+        const draft = state.bundleCreationDraft && state.bundleCreationDraft.id === state.selectedBundleId
+          ? state.bundleCreationDraft
+          : state.bundleEditorDraft;
+        if (!draft) return;
+        const id = text(draft.id) || nextBundleId();
+        const name = text(draft.name);
+        if (!validateEntityName("bundles", id, name, "bundleName", "bundleNameError")) return;
         state.db.ids.bundles ||= {};
         const previous = state.db.ids.bundles[id] || {};
-        state.db.ids.bundles[id] = { ...previous, name, products: Array.isArray(previous.products) ? previous.products : [], aliases: [name], _source: { file: "cairmdb-manager" } };
+        state.db.ids.bundles[id] = { ...previous, name, products: [...(draft.products || [])], aliases: [name], _source: { file: "cairmdb-manager" } };
         state.selectedBundleId = id;
-        state.bundleEditorDraft = { id, name, search: text(state.bundleEditorDraft && state.bundleEditorDraft.search) };
+        if (state.bundleCreationDraft && state.bundleCreationDraft.id === id) state.bundleCreationDraft = null;
+        state.bundleEditorDraft = { id, name, search: text(draft.search), products: [...(draft.products || [])] };
         syncActiveBundles();
         markDirty();
         renderBundlesView();
@@ -2775,21 +3035,12 @@
         state.db.activeBundles = bundles().map((bundle) => ({ id: bundle.id, name: bundle.name, status: "manual", composition: bundle.products.map(productName).join(" + "), products: bundle.products, source: "cairmdb-manager" }));
       }
 
-      function ensureDraftBundle() {
-        if (state.selectedBundleId && ids("bundles")[state.selectedBundleId]) return state.selectedBundleId;
-        const id = text(state.bundleEditorDraft && state.bundleEditorDraft.id) || nextBundleId();
-        const name = text(state.bundleEditorDraft && state.bundleEditorDraft.name) || id;
-        state.db.ids.bundles[id] = { name, products: [], aliases: name === id ? [] : [name], _source: { file: "cairmdb-manager" } };
-        state.selectedBundleId = id;
-        state.bundleEditorDraft = { id, name: text(state.bundleEditorDraft && state.bundleEditorDraft.name), search: text(state.bundleEditorDraft && state.bundleEditorDraft.search) };
-        return id;
-      }
-
       function updateCurrentBundleProducts(transform) {
-        const id = ensureDraftBundle();
-        state.db.ids.bundles[id].products = transform([...(state.db.ids.bundles[id].products || [])]);
-        syncActiveBundles();
-        markDirty();
+        const draft = state.bundleCreationDraft && state.bundleCreationDraft.id === state.selectedBundleId
+          ? state.bundleCreationDraft
+          : state.bundleEditorDraft;
+        if (!draft) return;
+        draft.products = transform([...(draft.products || [])]);
         renderBundlesView();
       }
 
@@ -2802,28 +3053,70 @@
           box.innerHTML = '<div class="empty">Enter a search to show products</div>';
           return;
         }
-        const selected = new Set(currentBundleRecord() && currentBundleRecord().products || []);
+        const activeDraft = state.bundleCreationDraft && state.bundleCreationDraft.id === state.selectedBundleId
+          ? state.bundleCreationDraft
+          : state.bundleEditorDraft;
+        const selected = new Set(activeDraft && activeDraft.products || []);
         const visible = products().filter((product) => !selected.has(product.id)).filter((product) => !query || normalize([product.id, product.name, product.crmId, product.aliases.join(" ")].join(" ")).includes(query)).slice(0, 80);
         box.innerHTML = visible.map((product) => `<div class="product-row" data-add-product="${esc(product.id)}"><div><strong>${esc(product.name)}</strong><div class="meta">${esc(product.id)}</div></div><button type="button">Add</button></div>`).join("") || '<div class="empty">No products found</div>';
         box.querySelectorAll("[data-add-product]").forEach((row) => row.querySelector("button").addEventListener("click", () => updateCurrentBundleProducts((items) => [...items, row.dataset.addProduct])));
       }
 
       function newBundle() {
+        if (state.bundleCreationDraft) {
+          state.selectedBundleId = state.bundleCreationDraft.id;
+          renderBundlesView();
+          $("bundleName").focus();
+          return;
+        }
+        if (bundleEditorHasChanges() && !confirm("Discard the unsaved changes to this bundle and create a new one?")) return;
+        const listContext = captureListContext("bundles");
         clearListContext("bundles");
         state.previousBundleId = state.selectedBundleId;
-        state.selectedBundleId = "";
-        state.bundleEditorDraft = { id: nextBundleId(), name: "", search: "" };
+        const id = nextBundleId();
+        state.bundleCreationDraft = { id, name: "", search: "", products: [], listContext };
+        state.bundleEditorDraft = null;
+        state.selectedBundleId = id;
         renderBundlesView();
         $("bundleName").focus();
       }
 
+      function cancelBundleCreation() {
+        if (!state.bundleCreationDraft) return;
+        const listContext = state.bundleCreationDraft.listContext;
+        const fallbackId = ids("bundles")[state.previousBundleId]
+          ? state.previousBundleId
+          : bundles()[0] ? bundles()[0].id : "";
+        state.bundleCreationDraft = null;
+        state.bundleEditorDraft = null;
+        state.selectedBundleId = fallbackId;
+        state.previousBundleId = "";
+        restoreListContext("bundles", listContext);
+        renderBundlesView();
+      }
+
+      function cancelBundleEditing() {
+        const current = currentBundleRecord();
+        if (!current || !state.bundleEditorDraft) return;
+        state.bundleEditorDraft = {
+          id: state.selectedBundleId,
+          name: text(current.name),
+          search: text(state.bundleEditorDraft.search),
+          products: [...(Array.isArray(current.products) ? current.products : [])]
+        };
+        renderBundlesView();
+      }
+
       function deleteBundle() {
         if (!state.selectedBundleId) return;
+        const current = ids("bundles")[state.selectedBundleId];
+        if (!current || !confirm(`Delete bundle ${text(current.name) || state.selectedBundleId} (${state.selectedBundleId})?\n\nIts product composition will be removed.`)) return;
         delete state.db.ids.bundles[state.selectedBundleId];
         if (state.db.checked && state.db.checked.bundles) delete state.db.checked.bundles[state.selectedBundleId];
-        state.selectedBundleId = ids("bundles")[state.previousBundleId] ? state.previousBundleId : bundles()[0] ? bundles()[0].id : "";
+        state.selectedBundleId = state.bundleCreationDraft && state.bundleCreationDraft.id === state.previousBundleId
+          ? state.previousBundleId
+          : ids("bundles")[state.previousBundleId] ? state.previousBundleId : bundles()[0] ? bundles()[0].id : "";
         state.bundleEditorDraft = null;
-        reconcileSelections();
         syncActiveBundles();
         markDirty();
         renderBundlesView();
@@ -2929,6 +3222,7 @@
       async function exportDbFile() {
         if (!state.db) return;
         if (els.downloadDb.disabled) return;
+        if (!confirmPendingWork("with the export", "Pending creations and unsaved bundle changes will not be included in the exported file.")) return;
         els.downloadDb.disabled = true;
         const json = `${JSON.stringify(buildExportDb(), null, 2)}\n`;
         try {
@@ -2956,6 +3250,7 @@
 
       async function exportDb() {
         if (!state.db) return;
+        if (!confirmPendingWork("with the copy", "Pending creations and unsaved bundle changes will not be included in the copied database.")) return;
         const json = `${JSON.stringify(buildExportDb(), null, 2)}\n`;
         clearTimeout(copyFeedbackTimer);
         els.exportDb.classList.remove("is-copied", "is-copy-error");
@@ -2991,6 +3286,9 @@
         const databaseNormalized = normalizeDatabase(state.db);
         const countriesRepaired = reconcileCountryRecords(state.db);
         const databaseRepaired = databaseNormalized || countriesRepaired;
+        state.countryCreationDraft = null;
+        state.productCreationDraft = null;
+        state.bundleCreationDraft = null;
         state.bundleEditorDraft = null;
         ["previousCountryId", "previousProductId", "previousSkuProductId", "previousBundleId"].forEach((key) => { state[key] = ""; });
         ["countries", "products", "skus", "bundles"].forEach(clearListContext);
@@ -3009,6 +3307,7 @@
 
       async function loadDesktopFile() {
         if (els.importButton.disabled) return;
+        if (!confirmPendingWork("and open another database", "All pending work will be discarded.")) return;
         els.importButton.disabled = true;
         try {
           const result = await window.cairmDesktop.openDatabase();
@@ -3119,7 +3418,6 @@
       els.downloadDb.addEventListener("click", () => { void exportDbFile(); });
       els.newCountry.addEventListener("click", addCountry);
       els.newProduct.addEventListener("click", addProduct);
-      els.newSkuProduct.addEventListener("click", addSkuProduct);
       els.importButton.addEventListener("click", () => {
         if (window.cairmDesktop) void loadDesktopFile();
         else els.importDb.click();
@@ -3127,6 +3425,10 @@
       els.importDb.addEventListener("change", async () => {
         const file = els.importDb.files && els.importDb.files[0];
         if (!file) return;
+        if (!confirmPendingWork("and import another database", "All pending work will be discarded.")) {
+          els.importDb.value = "";
+          return;
+        }
         els.importButton.disabled = true;
         try {
           loadIntoState(JSON.parse(await file.text()), true);
@@ -3141,7 +3443,42 @@
       });
       els.newBundle.addEventListener("click", newBundle);
 
-      window.addEventListener("beforeunload", flushDraftPersistence);
+      document.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+        if ((event.metaKey || event.ctrlKey) && key === "s") {
+          event.preventDefault();
+          void exportDbFile();
+          return;
+        }
+        if (event.key === "Enter" && event.target instanceof Element && event.target.matches(".title-name-input")) {
+          event.preventDefault();
+          if (event.target.id === "countryName") saveCountry();
+          else if (event.target.id === "productName") saveProduct();
+          else if (event.target.id === "bundleName") saveBundle();
+          return;
+        }
+        if (event.key !== "Escape" || els.settingsModal.open) return;
+        if (state.activeView === "wws" && isCountryCreationDraft(state.selectedCountryId)) {
+          event.preventDefault();
+          cancelCountryCreation();
+        } else if (state.activeView === "ga" && isProductCreationDraft(state.selectedProductId)) {
+          event.preventDefault();
+          cancelProductCreation();
+        } else if (state.activeView === "bundles" && state.bundleCreationDraft && state.selectedBundleId === state.bundleCreationDraft.id) {
+          event.preventDefault();
+          cancelBundleCreation();
+        } else if (state.activeView === "bundles" && bundleEditorHasChanges()) {
+          event.preventDefault();
+          cancelBundleEditing();
+        }
+      });
+
+      window.addEventListener("beforeunload", (event) => {
+        flushDraftPersistence();
+        if (!pendingWorkLabels().length) return;
+        event.preventDefault();
+        event.returnValue = "";
+      });
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden") flushDraftPersistence();
       });

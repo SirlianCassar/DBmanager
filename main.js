@@ -3,6 +3,7 @@ const fs = require("fs/promises");
 const path = require("path");
 
 const databasePath = () => path.join(app.getAppPath(), "cairm-full-database.json");
+const appIconPath = () => path.join(__dirname, "src", "icons", process.platform === "win32" ? "app-icon.ico" : "app-icon.png");
 const MAX_DATABASE_BYTES = 25 * 1024 * 1024;
 
 function assertDatabaseContent(json) {
@@ -29,6 +30,7 @@ function createWindow() {
     minWidth: 980,
     minHeight: 680,
     title: "CairmDB Manager",
+    icon: appIconPath(),
     autoHideMenuBar: true,
     backgroundColor: "#151719",
     webPreferences: {
@@ -41,6 +43,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin" && app.dock) app.dock.setIcon(appIconPath());
   ipcMain.handle("database:default", () => readDatabaseFile(databasePath()));
   ipcMain.handle("database:open", async () => {
     const result = await dialog.showOpenDialog({

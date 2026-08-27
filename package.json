@@ -1,6 +1,6 @@
 {
   "name": "cairmdb-manager",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "author": "Cairm",
   "description": "Gestionnaire de base CairmDB, application de bureau portable.",
@@ -27,10 +27,23 @@
       "cairm-full-database.json"
     ],
     "mac": {
-      "target": ["dir"],
+      "target": [
+        "dir"
+      ],
+      "icon": "src/icons/app-icon.icns",
       "category": "public.app-category.productivity"
     },
-    "win": { "target": ["portable"] },
-    "linux": { "target": ["AppImage"] }
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "src/icons/app-icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "src/icons/app-icon.png"
+    }
   }
 }

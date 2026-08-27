@@ -564,6 +564,16 @@ main {
   box-shadow: 0 0 0 1px var(--selection-ring);
 }
 
+:is(#countryList, #productList, #bundleList) .item.is-draft {
+  border-color: rgba(216, 173, 103, .5);
+  background: rgba(216, 173, 103, .08);
+}
+
+:is(#countryList, #productList, #bundleList) .item.is-draft.is-active {
+  border-color: var(--selection-border);
+  background: var(--selection-bg);
+}
+
 :is(#countryList, #productList, #skuProductList, #bundleList) .item.is-checked {
   border-color: rgba(114, 200, 154, .5);
   background: var(--success-soft);
@@ -642,6 +652,39 @@ main {
   color: var(--text);
   font-size: 15px;
   font-weight: 700;
+}
+
+.title-inline > .title-name-input {
+  flex: 1 1 260px;
+  width: min(520px, 48vw);
+  min-width: 180px;
+  max-width: 520px;
+  min-height: 0;
+  padding: 1px 3px 3px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  text-overflow: clip;
+}
+
+.title-inline > .title-name-input:hover {
+  border-bottom-color: var(--line-strong);
+}
+
+.title-inline > .title-name-input:focus-visible {
+  border-bottom-color: var(--blue);
+  box-shadow: none;
+}
+
+.title-inline > .title-name-input[aria-invalid="true"] {
+  border-bottom-color: var(--danger);
+}
+
+.name-validation {
+  color: var(--danger);
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .editor-id {
@@ -1098,6 +1141,16 @@ th { position: sticky; top: 0; background: var(--panel-raised); color: var(--mut
 .home-details { display: grid; gap: 4px; }
 .home-detail { display: grid; grid-template-columns: minmax(140px, 1fr) auto auto; align-items: center; gap: 10px; }
 .home-detail .attention { color: var(--warning); }
+.home-detail-action {
+  min-height: 26px;
+  padding: 3px 7px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 550;
+}
+.home-detail-action:hover:not(:disabled) { border-color: var(--line-strong); background: var(--panel-hover); }
 .home-dates { color: var(--muted); font-size: 10px; }
 
 .settings-modal {
