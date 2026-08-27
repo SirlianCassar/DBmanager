@@ -1,6 +1,6 @@
 {
   "name": "cairmdb-manager",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "author": "Cairm",
   "description": "Gestionnaire de base CairmDB, application de bureau portable.",
