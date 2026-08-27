@@ -780,6 +780,12 @@ main {
 }
 
 .product-editor-card .service-head > .service-head-actions > .temporary-check {
+  width: 88px;
+  margin-left: auto;
+}
+
+.product-editor-card .exchange-comment-toggle {
+  width: 88px;
   margin-left: auto;
 }
 
@@ -932,7 +938,7 @@ main {
 
 .product-paid-section {
   position: relative;
-  background: linear-gradient(90deg, rgba(88, 174, 237, .035), transparent 60%);
+  background: transparent;
 }
 
 .paid-rma-details {

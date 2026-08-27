@@ -1171,8 +1171,8 @@
   <div class="app">
     <header>
       <div class="topbar">
-        <h1><span>DBmanager</span><span class="version-badge" title="Version de l’application">v1.0.0</span></h1>
-        <div class="status" id="status" hidden aria-live="polite"></div>
+        <h1><span>DBmanager</span><span class="version-badge" title="Version de l’application">v1.0.1</span></h1>
+        <div class="status" id="status" aria-live="polite"></div>
         <div class="top-actions">
           <input id="importDb" type="file" accept="application/json,.json" hidden>
           <button type="button" class="toolbar-action icon-action" id="settingsButton" title="Application settings" aria-label="Application settings"><img src="../icons/icons8-paramètres-70.png" alt=""></button>
@@ -1311,8 +1311,9 @@
       const ZONES = ["europe", "usa", "canada", "hong_kong_taiwan", "australia", "rest_of_world"];
       const STATUS = ["yes", "no", "temp"];
       const EXCHANGE_STATUS = ["retailer", "us", "temp", "no"];
-      const state = { db: null, sourceDb: null, activeView: "home", selectedCountryId: "", selectedProductId: "", selectedSkuProductId: "", selectedBundleId: "", previousCountryId: "", previousProductId: "", previousSkuProductId: "", previousBundleId: "", selectedZone: "europe", countrySort: "alpha", productSort: "alpha", skuProductSort: "alpha", bundleSort: "alpha", listFilters: { countries: { validated: false, unvalidated: false, empty: false }, products: { validated: false, unvalidated: false, empty: false }, skus: { validated: false, unvalidated: false, empty: false }, bundles: { validated: false, unvalidated: false } }, dirty: false };
+      const state = { db: null, sourceDb: null, activeView: "home", selectedCountryId: "", selectedProductId: "", selectedSkuProductId: "", selectedBundleId: "", previousCountryId: "", previousProductId: "", previousSkuProductId: "", previousBundleId: "", selectedZone: "europe", countrySort: "alpha", productSort: "alpha", skuProductSort: "alpha", bundleSort: "alpha", bundleEditorDraft: null, listFilters: { countries: { validated: false, unvalidated: false, empty: false }, products: { validated: false, unvalidated: false, empty: false }, skus: { validated: false, unvalidated: false, empty: false }, bundles: { validated: false, unvalidated: false } }, dirty: false };
       let copyFeedbackTimer = 0;
+      let draftSaveTimer = 0;
       const $ = (id) => document.getElementById(id);
       const els = {
         status: $("status"),
@@ -1533,6 +1534,117 @@
         if (Object.keys(countries).length) product.skus.countries = countries;
       }
 
+      function normalizeDatabase(db) {
+        let changed = false;
+        const objectOrEmpty = (owner, key) => {
+          if (!owner[key] || typeof owner[key] !== "object" || Array.isArray(owner[key])) {
+            owner[key] = {};
+          }
+          return owner[key];
+        };
+        const databaseIds = objectOrEmpty(db, "ids");
+        ["countries", "products", "bundles"].forEach((scope) => {
+          const records = objectOrEmpty(databaseIds, scope);
+          Object.keys(records).forEach((id) => {
+            if (!records[id] || typeof records[id] !== "object" || Array.isArray(records[id])) {
+              records[id] = {};
+              changed = true;
+            }
+          });
+        });
+        const countryRecords = objectOrEmpty(db, "countries");
+        const productRecords = objectOrEmpty(db, "products");
+        const checked = objectOrEmpty(db, "checked");
+        ["countries", "products", "skus", "bundles"].forEach((scope) => objectOrEmpty(checked, scope));
+
+        const validCountries = new Set(Object.keys(databaseIds.countries));
+        const validProducts = new Set(Object.keys(databaseIds.products));
+        const validBundles = new Set(Object.keys(databaseIds.bundles));
+        Object.keys(countryRecords).forEach((id) => {
+          if (!validCountries.has(id)) {
+            delete countryRecords[id];
+            changed = true;
+          }
+        });
+        Object.keys(productRecords).forEach((id) => {
+          if (!validProducts.has(id)) {
+            delete productRecords[id];
+            changed = true;
+          }
+        });
+
+        const validCheckedIds = { countries: validCountries, products: validProducts, skus: validProducts, bundles: validBundles };
+        Object.entries(validCheckedIds).forEach(([scope, validIds]) => {
+          Object.keys(checked[scope]).forEach((id) => {
+            if (!validIds.has(id)) {
+              delete checked[scope][id];
+              changed = true;
+            }
+          });
+        });
+
+        Object.values(databaseIds.bundles).forEach((bundle) => {
+          const current = Array.isArray(bundle.products) ? bundle.products : [];
+          const products = Array.from(new Set(current.filter((id) => validProducts.has(id))));
+          if (!Array.isArray(bundle.products) || products.length !== current.length || products.some((id, index) => id !== current[index])) {
+            bundle.products = products;
+            changed = true;
+          }
+        });
+
+        Object.values(productRecords).forEach((product) => {
+          if (!product || typeof product !== "object" || Array.isArray(product)) return;
+          const skuData = readProductSkuData(product);
+          Object.keys(skuData.countries).forEach((countryId) => {
+            if (!validCountries.has(countryId)) {
+              delete skuData.countries[countryId];
+              changed = true;
+            }
+          });
+          if (product.skus) cleanProductSkus(product);
+          Object.values(product.zones || {}).forEach((zone) => {
+            const fees = zone && zone.rma && zone.rma.extra_transport_fees;
+            if (!fees || typeof fees !== "object" || Array.isArray(fees)) return;
+            Object.keys(fees).forEach((countryId) => {
+              if (!validCountries.has(countryId)) {
+                delete fees[countryId];
+                changed = true;
+              }
+            });
+          });
+        });
+        return changed;
+      }
+
+      function reconcileSelections() {
+        if (!state.db) return;
+        const productIds = ids("products");
+        const selectionScopes = [
+          ["selectedCountryId", "previousCountryId", ids("countries")],
+          ["selectedProductId", "previousProductId", productIds],
+          ["selectedSkuProductId", "previousSkuProductId", productIds],
+          ["selectedBundleId", "previousBundleId", ids("bundles")]
+        ];
+        selectionScopes.forEach(([selectedKey, previousKey, records]) => {
+          if (!records[state[selectedKey]]) state[selectedKey] = Object.keys(records)[0] || "";
+          if (!records[state[previousKey]]) state[previousKey] = "";
+        });
+        if (!ZONES.includes(state.selectedZone)) state.selectedZone = ZONES[0];
+      }
+
+      function removeCountryReferences(countryId) {
+        Object.values(state.db.products || {}).forEach((product) => {
+          if (!product || typeof product !== "object" || Array.isArray(product)) return;
+          const skuData = readProductSkuData(product);
+          delete skuData.countries[countryId];
+          if (product.skus) cleanProductSkus(product);
+          Object.values(product.zones || {}).forEach((zone) => {
+            const fees = zone && zone.rma && zone.rma.extra_transport_fees;
+            if (fees && typeof fees === "object" && !Array.isArray(fees)) delete fees[countryId];
+          });
+        });
+      }
+
       function ensureProductSkus(id) {
         if (!ids("products")[id]) return null;
         const product = state.db.products[id] ||= {};
@@ -1657,10 +1769,26 @@
       }
 
       function markDirty() {
+        if (!state.db) return;
         state.dirty = true;
         state.db.updatedAt = new Date().toISOString();
-        persistDraft();
+        scheduleDraftPersistence();
         renderStatus();
+      }
+
+      function scheduleDraftPersistence() {
+        clearTimeout(draftSaveTimer);
+        draftSaveTimer = window.setTimeout(() => {
+          draftSaveTimer = 0;
+          persistDraft();
+        }, 300);
+      }
+
+      function flushDraftPersistence() {
+        if (!draftSaveTimer) return;
+        clearTimeout(draftSaveTimer);
+        draftSaveTimer = 0;
+        persistDraft();
       }
 
       function persistDraft() {
@@ -1735,8 +1863,28 @@
         return id;
       }
 
+      function closeFilterPopovers() {
+        els.listFilterPopovers.forEach((popover) => { popover.hidden = true; });
+        els.listFilterButtons.forEach((button) => button.setAttribute("aria-expanded", "false"));
+      }
+
+      function clearListContext(scope) {
+        const searchByScope = { countries: els.countrySearch, products: els.productSearch, skus: els.skuProductSearch, bundles: els.bundleSearch };
+        const search = searchByScope[scope];
+        if (search) search.value = "";
+        Object.keys(state.listFilters[scope] || {}).forEach((filter) => {
+          state.listFilters[scope][filter] = false;
+        });
+        els.listFilterInputs.forEach((input) => {
+          if (input.dataset.listFilter.startsWith(`${scope}:`)) input.checked = false;
+        });
+        updateFilterButton(scope);
+        closeFilterPopovers();
+      }
+
       function addCountry() {
         if (!state.db) return;
+        clearListContext("countries");
         state.previousCountryId = state.selectedCountryId;
         const id = nextScopedId("countries", "C");
         const name = `New country ${id}`;
@@ -1754,6 +1902,8 @@
 
       function addProduct() {
         if (!state.db) return;
+        clearListContext("products");
+        clearListContext("skus");
         state.previousProductId = state.selectedProductId;
         const id = nextScopedId("products", "P");
         const name = `New product ${id}`;
@@ -1766,6 +1916,8 @@
 
       function addSkuProduct() {
         if (!state.db) return;
+        clearListContext("skus");
+        clearListContext("products");
         state.previousProductId = state.selectedProductId;
         state.previousSkuProductId = state.selectedSkuProductId;
         const id = nextScopedId("products", "P");
@@ -1796,6 +1948,7 @@
         syncActiveBundles();
         state.selectedProductId = ids("products")[state.previousProductId] ? state.previousProductId : products()[0] ? products()[0].id : "";
         state.selectedSkuProductId = ids("products")[state.previousSkuProductId] ? state.previousSkuProductId : skuProducts()[0] ? skuProducts()[0].id : "";
+        reconcileSelections();
         markDirty();
         renderGa();
         renderSkuView();
@@ -1808,9 +1961,11 @@
         delete state.db.ids.countries[id];
         delete state.db.countries[id];
         if (state.db.checked && state.db.checked.countries) delete state.db.checked.countries[id];
+        removeCountryReferences(id);
         state.selectedCountryId = ids("countries")[state.previousCountryId] ? state.previousCountryId : countries()[0] ? countries()[0].id : "";
+        reconcileSelections();
         markDirty();
-        renderWws();
+        renderAll();
       }
 
       function renderStatus() {
@@ -1874,10 +2029,16 @@
       }
 
       function setView(view) {
+        if (!els.views.some((section) => section.id === `view-${view}`)) return;
+        closeFilterPopovers();
         state.activeView = view;
         els.tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.view === view)));
         els.views.forEach((section) => section.classList.toggle("is-active", section.id === `view-${view}`));
         if (view === "home") renderHome();
+        else if (view === "wws") renderWws();
+        else if (view === "ga") renderGa();
+        else if (view === "sku") renderSkuView();
+        else if (view === "bundles") renderBundlesView();
       }
 
       function renderCountryList() {
@@ -1908,7 +2069,10 @@
           return;
         }
         state.selectedCountryId = id;
-        const record = ensureCountry(id);
+        const sourceRecord = state.db.countries[id];
+        const record = sourceRecord && typeof sourceRecord === "object" && !Array.isArray(sourceRecord)
+          ? sourceRecord
+          : defaultCountryRecord();
         const rmaCheckRetailer = record.rma.warranty_duration === "check_retailer";
         const sparePartsControl = record.spare_parts.status === "yes"
           ? `<div class="field"><label>Warranty duration</label><select data-country-field="spare_parts.warranty_duration">${warrantyOptions(record.spare_parts.warranty_duration)}</select></div>`
@@ -1971,7 +2135,7 @@
         });
         const rmaCheckRetailerInput = $("rmaCheckRetailer");
         if (rmaCheckRetailerInput) rmaCheckRetailerInput.addEventListener("change", (event) => {
-            record.rma.warranty_duration = event.target.checked ? "check_retailer" : 2;
+            ensureCountry(id).rma.warranty_duration = event.target.checked ? "check_retailer" : 2;
             markDirty();
             renderCountryEditor();
           });
@@ -2039,8 +2203,14 @@
         return (paid.location || feeToText(paid.price)) ? "yes" : "no";
       }
 
-      function countryOptions(current) {
-        return countries().map(({ id, name }) => `<option value="${esc(id)}"${id === current ? " selected" : ""}>${esc(id)} · ${esc(name)}</option>`).join("");
+      function countryOptions(current, excludedIds = new Set()) {
+        const options = countries()
+          .filter(({ id }) => id === current || !excludedIds.has(id))
+          .map(({ id, name }) => `<option value="${esc(id)}"${id === current ? " selected" : ""}>${esc(id)} · ${esc(name)}</option>`);
+        if (current && !ids("countries")[current]) {
+          options.unshift(`<option value="${esc(current)}" selected>${esc(current)} · Missing country</option>`);
+        }
+        return options.join("");
       }
 
       function resolveLocationId(value) {
@@ -2110,6 +2280,8 @@
         }
         const zone = zoneForDisplay(product.zones && product.zones[state.selectedZone]);
         const fees = zone.rma.extra_transport_fees || {};
+        const usedFeeCountryIds = new Set(Object.keys(fees));
+        const canAddFeeCountry = countries().some((country) => !usedFeeCountryIds.has(country.id));
         const paidPriceText = feeToText(zone.rma.paid && zone.rma.paid.price);
         const paidLocation = zone.rma.paid && zone.rma.paid.location || "";
         const defaultFeeText = feeToText(zone.rma.default_transport_fee);
@@ -2143,7 +2315,7 @@
                   <div class="service-card exchange-card">
                     <div class="service-head">
                       <label>Exchange</label>
-                      <label class="checkline" title="Add a decision comment"><input type="checkbox" data-exchange-comment-toggle ${zone.exchange && typeof zone.exchange.comment === "string" ? "checked" : ""}> comment</label>
+                      <label class="checkline exchange-comment-toggle" title="Add a decision comment"><input type="checkbox" data-exchange-comment-toggle ${zone.exchange && typeof zone.exchange.comment === "string" ? "checked" : ""}> comment</label>
                     </div>
                     <select data-product-field="exchange.status">${exchangeOptionHtml(zone.exchange && zone.exchange.status || "no")}</select>
                   </div>
@@ -2166,10 +2338,10 @@
                     <div class="field">
                       <div class="head-row">
                         <label>Country-specific fees</label>
-                        <button type="button" class="icon primary" id="addFee" title="Add country fee">+</button>
+                        <button type="button" class="icon primary" id="addFee" ${canAddFeeCountry ? "" : "disabled"} title="${canAddFeeCountry ? "Add country fee" : "All countries already have a fee"}">+</button>
                       </div>
                       <div class="list" id="feeList">
-                        ${Object.entries(fees).map(([countryId, fee]) => `<div class="fee-row" data-fee-country="${esc(countryId)}"><select data-fee-id>${countryOptions(countryId)}</select><input data-fee-value value="${esc(feeToText(fee))}" placeholder="Fee"><button type="button" class="danger" data-remove-fee>Remove</button></div>`).join("") || '<div class="empty">No country-specific fees</div>'}
+                        ${Object.entries(fees).map(([countryId, fee]) => `<div class="fee-row" data-fee-country="${esc(countryId)}"><select data-fee-id>${countryOptions(countryId, usedFeeCountryIds)}</select><input data-fee-value value="${esc(feeToText(fee))}" placeholder="Fee"><button type="button" class="danger" data-remove-fee>Remove</button></div>`).join("") || '<div class="empty">No country-specific fees</div>'}
                       </div>
                     </div>
                   </div>
@@ -2256,9 +2428,10 @@
         });
         const addFeeButton = $("addFee");
         if (addFeeButton) addFeeButton.addEventListener("click", () => {
-          const firstCountry = countries()[0] && countries()[0].id;
+          const targetFees = ensureProductZone(id, state.selectedZone).rma.extra_transport_fees;
+          const firstCountry = countries().find((country) => !Object.prototype.hasOwnProperty.call(targetFees, country.id));
           if (!firstCountry) return;
-          ensureProductZone(id, state.selectedZone).rma.extra_transport_fees[firstCountry] ||= "";
+          targetFees[firstCountry.id] = "";
           markDirty();
           renderProductEditor();
         });
@@ -2270,8 +2443,10 @@
         renderStatus();
       }
 
-      function skuCountryOptions(current) {
-        const options = countries().map(({ id, name }) => `<option value="${esc(id)}"${id === current ? " selected" : ""}>${esc(id)} · ${esc(name)}</option>`);
+      function skuCountryOptions(current, excludedIds = new Set()) {
+        const options = countries()
+          .filter(({ id }) => id === current || !excludedIds.has(id))
+          .map(({ id, name }) => `<option value="${esc(id)}"${id === current ? " selected" : ""}>${esc(id)} · ${esc(name)}</option>`);
         if (current && !ids("countries")[current]) {
           options.unshift(`<option value="${esc(current)}" selected>${esc(current)} · Missing country</option>`);
         }
@@ -2378,7 +2553,7 @@
               <div class="list" id="skuRows">
                 ${entries.map(([countryId, values]) => `
                   <div class="sku-row sku-country-row" data-sku-country="${esc(countryId)}">
-                    <select data-sku-country-id aria-label="Country">${skuCountryOptions(countryId)}</select>
+                    <select data-sku-country-id aria-label="Country">${skuCountryOptions(countryId, usedCountryIds)}</select>
                     <input data-sku-values aria-label="SKU for ${esc(countryName(countryId))}" value="${esc(values[0] || "")}" placeholder="Country SKU">
                     <button
                       type="button"
@@ -2477,8 +2652,11 @@
           </button>
         `).join("") || '<div class="empty">No bundles</div>';
         els.bundleList.querySelectorAll("[data-bundle]").forEach((button) => button.addEventListener("click", () => {
-          if (state.selectedBundleId !== button.dataset.bundle) state.previousBundleId = state.selectedBundleId;
-          state.selectedBundleId = button.dataset.bundle;
+          if (state.selectedBundleId !== button.dataset.bundle) {
+            state.previousBundleId = state.selectedBundleId;
+            state.selectedBundleId = button.dataset.bundle;
+            state.bundleEditorDraft = null;
+          }
           renderBundlesView();
         }));
       }
@@ -2491,12 +2669,16 @@
         const current = currentBundleRecord();
         const selected = current && Array.isArray(current.products) ? current.products : [];
         const editorBundleId = current ? state.selectedBundleId : nextBundleId();
+        if (!state.bundleEditorDraft || state.bundleEditorDraft.id !== editorBundleId) {
+          state.bundleEditorDraft = { id: editorBundleId, name: text(current && current.name), search: "" };
+        }
+        const editorDraft = state.bundleEditorDraft;
         els.bundleEditor.innerHTML = `
           <div class="data-card bundle-editor-card editor-form-card">
             <div class="editor-header">
               <div class="editor-title">
                 <div class="title-inline">
-                  <div class="row-title">${esc(current && current.name || "New bundle")}</div>
+                  <div class="row-title">${esc(editorDraft.name || current && current.name || "New bundle")}</div>
                   <div class="editor-id">${esc(editorBundleId)}</div>
                   ${current ? verifiedCheckbox("bundles", state.selectedBundleId) : ""}
                 </div>
@@ -2510,7 +2692,7 @@
               <div class="section-title">Bundle details</div>
               <div class="grid-2 bundle-details-grid">
               <div class="field"><label>Bundle ID</label><input id="bundleId" value="${esc(editorBundleId)}" readonly></div>
-              <div class="field"><label>Custom name</label><input id="bundleName" value="${esc(current && current.name)}" placeholder="Bundle name"></div>
+              <div class="field"><label>Custom name</label><input id="bundleName" value="${esc(editorDraft.name)}" placeholder="Bundle name"></div>
               </div>
             </div>
             <div class="editor-section bundle-product-section">
@@ -2521,7 +2703,7 @@
             </div>
             <div class="editor-section bundle-product-section">
               <div class="section-title">Add from GA</div>
-              <div class="field bundle-search-field"><label for="bundleProductSearch">Find a product to add</label><input id="bundleProductSearch" type="search" autocomplete="off" placeholder="Search by product name or ID..."></div>
+              <div class="field bundle-search-field"><label for="bundleProductSearch">Find a product to add</label><input id="bundleProductSearch" type="search" autocomplete="off" value="${esc(editorDraft.search || "")}" placeholder="Search by product name or ID..."></div>
               <div class="list bundle-results" id="bundleProductResults"></div>
             </div>
           </div>
@@ -2531,7 +2713,17 @@
           renderBundleEditor();
         });
         renderBundleProductResults();
-        $("bundleProductSearch").addEventListener("input", renderBundleProductResults);
+        $("bundleProductSearch").addEventListener("input", (event) => {
+          if (state.bundleEditorDraft && state.bundleEditorDraft.id === editorBundleId) {
+            state.bundleEditorDraft.search = event.target.value;
+          }
+          renderBundleProductResults();
+        });
+        $("bundleName").addEventListener("input", (event) => {
+          if (state.bundleEditorDraft && state.bundleEditorDraft.id === editorBundleId) {
+            state.bundleEditorDraft.name = event.target.value;
+          }
+        });
         $("saveBundle").addEventListener("click", saveBundle);
         const deleteButton = $("deleteBundle");
         if (deleteButton) deleteButton.addEventListener("click", deleteBundle);
@@ -2563,8 +2755,8 @@
       }
 
       function saveBundle() {
-        const id = text($("bundleId").value) || nextBundleId();
-        const name = text($("bundleName").value);
+        const id = text(state.bundleEditorDraft && state.bundleEditorDraft.id) || text($("bundleId").value) || nextBundleId();
+        const name = text(state.bundleEditorDraft && state.bundleEditorDraft.name);
         if (!name) {
           $("bundleName").focus();
           return;
@@ -2573,6 +2765,7 @@
         const previous = state.db.ids.bundles[id] || {};
         state.db.ids.bundles[id] = { ...previous, name, products: Array.isArray(previous.products) ? previous.products : [], aliases: [name], _source: { file: "cairmdb-manager" } };
         state.selectedBundleId = id;
+        state.bundleEditorDraft = { id, name, search: text(state.bundleEditorDraft && state.bundleEditorDraft.search) };
         syncActiveBundles();
         markDirty();
         renderBundlesView();
@@ -2584,9 +2777,11 @@
 
       function ensureDraftBundle() {
         if (state.selectedBundleId && ids("bundles")[state.selectedBundleId]) return state.selectedBundleId;
-        const id = $("bundleId") ? text($("bundleId").value) : nextBundleId();
-        state.db.ids.bundles[id] = { name: text($("bundleName") && $("bundleName").value) || id, products: [], aliases: [], _source: { file: "cairmdb-manager" } };
+        const id = text(state.bundleEditorDraft && state.bundleEditorDraft.id) || nextBundleId();
+        const name = text(state.bundleEditorDraft && state.bundleEditorDraft.name) || id;
+        state.db.ids.bundles[id] = { name, products: [], aliases: name === id ? [] : [name], _source: { file: "cairmdb-manager" } };
         state.selectedBundleId = id;
+        state.bundleEditorDraft = { id, name: text(state.bundleEditorDraft && state.bundleEditorDraft.name), search: text(state.bundleEditorDraft && state.bundleEditorDraft.search) };
         return id;
       }
 
@@ -2614,8 +2809,10 @@
       }
 
       function newBundle() {
+        clearListContext("bundles");
         state.previousBundleId = state.selectedBundleId;
         state.selectedBundleId = "";
+        state.bundleEditorDraft = { id: nextBundleId(), name: "", search: "" };
         renderBundlesView();
         $("bundleName").focus();
       }
@@ -2625,6 +2822,8 @@
         delete state.db.ids.bundles[state.selectedBundleId];
         if (state.db.checked && state.db.checked.bundles) delete state.db.checked.bundles[state.selectedBundleId];
         state.selectedBundleId = ids("bundles")[state.previousBundleId] ? state.previousBundleId : bundles()[0] ? bundles()[0].id : "";
+        state.bundleEditorDraft = null;
+        reconcileSelections();
         syncActiveBundles();
         markDirty();
         renderBundlesView();
@@ -2729,24 +2928,30 @@
 
       async function exportDbFile() {
         if (!state.db) return;
+        if (els.downloadDb.disabled) return;
+        els.downloadDb.disabled = true;
         const json = `${JSON.stringify(buildExportDb(), null, 2)}\n`;
-        if (window.cairmDesktop) {
-          const result = await window.cairmDesktop.saveDatabase(json);
-          if (result.saved) {
-            els.status.textContent = "JSON saved";
+        try {
+          if (window.cairmDesktop) {
+            const result = await window.cairmDesktop.saveDatabase(json);
+            if (result.saved) els.status.textContent = "JSON saved";
+            return;
           }
-          return;
+          const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "CairmDB.json";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          els.status.textContent = "JSON export downloaded";
+        } catch (error) {
+          els.status.textContent = `Save error: ${error.message}`;
+        } finally {
+          els.downloadDb.disabled = false;
         }
-        const blob = new Blob([json], { type: "application/json;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "CairmDB.json";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-        els.status.textContent = "JSON export downloaded";
       }
 
       async function exportDb() {
@@ -2783,38 +2988,38 @@
           throw new Error("The JSON root must be an object");
         }
         state.db = db;
-        if (!state.db.ids || typeof state.db.ids !== "object" || Array.isArray(state.db.ids)) state.db.ids = {};
-        ["countries", "products", "bundles"].forEach((scope) => {
-          if (!state.db.ids[scope] || typeof state.db.ids[scope] !== "object" || Array.isArray(state.db.ids[scope])) state.db.ids[scope] = {};
-        });
-        ["countries", "products", "checked"].forEach((key) => {
-          if (!state.db[key] || typeof state.db[key] !== "object" || Array.isArray(state.db[key])) state.db[key] = {};
-        });
-        ["countries", "products", "skus", "bundles"].forEach((scope) => {
-          if (!state.db.checked[scope] || typeof state.db.checked[scope] !== "object" || Array.isArray(state.db.checked[scope])) state.db.checked[scope] = {};
-        });
+        const databaseNormalized = normalizeDatabase(state.db);
         const countriesRepaired = reconcileCountryRecords(state.db);
+        const databaseRepaired = databaseNormalized || countriesRepaired;
+        state.bundleEditorDraft = null;
+        ["previousCountryId", "previousProductId", "previousSkuProductId", "previousBundleId"].forEach((key) => { state[key] = ""; });
+        ["countries", "products", "skus", "bundles"].forEach(clearListContext);
+        state.selectedCountryId = "";
+        state.selectedProductId = "";
+        state.selectedSkuProductId = "";
+        state.selectedBundleId = "";
+        reconcileSelections();
         state.sourceDb = clone(state.db);
-        state.dirty = !!fromDraft || countriesRepaired;
-        if (fromDraft && countriesRepaired) {
+        state.dirty = !!fromDraft || databaseRepaired;
+        if (fromDraft && databaseRepaired) {
           persistDraft();
         }
-        state.selectedCountryId = countries()[0] ? countries()[0].id : "";
-        state.selectedProductId = products()[0] ? products()[0].id : "";
-        state.selectedSkuProductId = skuProducts()[0] ? skuProducts()[0].id : "";
-        state.selectedBundleId = bundles()[0] ? bundles()[0].id : "";
         renderAll();
       }
 
       async function loadDesktopFile() {
-        const result = await window.cairmDesktop.openDatabase();
-        if (result.canceled) return;
+        if (els.importButton.disabled) return;
+        els.importButton.disabled = true;
         try {
+          const result = await window.cairmDesktop.openDatabase();
+          if (result.canceled) return;
           loadIntoState(JSON.parse(result.content), true);
           markDirty();
           els.status.textContent = "JSON loaded";
         } catch (error) {
           els.status.textContent = `JSON import error: ${error.message}`;
+        } finally {
+          els.importButton.disabled = false;
         }
       }
 
@@ -2874,8 +3079,7 @@
       }));
       document.addEventListener("click", (event) => {
         if (event.target.closest(".filter-menu")) return;
-        els.listFilterPopovers.forEach((popover) => { popover.hidden = true; });
-        els.listFilterButtons.forEach((button) => button.setAttribute("aria-expanded", "false"));
+        closeFilterPopovers();
       });
       els.countrySort.addEventListener("change", () => {
         state.countrySort = els.countrySort.value;
@@ -2923,6 +3127,7 @@
       els.importDb.addEventListener("change", async () => {
         const file = els.importDb.files && els.importDb.files[0];
         if (!file) return;
+        els.importButton.disabled = true;
         try {
           loadIntoState(JSON.parse(await file.text()), true);
           markDirty();
@@ -2931,9 +3136,15 @@
           els.status.textContent = `JSON import error: ${error.message}`;
         } finally {
           els.importDb.value = "";
+          els.importButton.disabled = false;
         }
       });
       els.newBundle.addEventListener("click", newBundle);
+
+      window.addEventListener("beforeunload", flushDraftPersistence);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") flushDraftPersistence();
+      });
 
       loadDb();
     })();
