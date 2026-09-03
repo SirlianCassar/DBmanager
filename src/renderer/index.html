@@ -1312,6 +1312,7 @@
       const ZONES = ["europe", "usa", "canada", "hong_kong_taiwan", "australia", "rest_of_world"];
       const STATUS = ["yes", "no", "temp"];
       const EXCHANGE_STATUS = ["retailer", "us", "temp", "no"];
+      const TEMP_COMMENT_SECTIONS = ["spare_parts", "rma", "paid_rma", "exchange"];
       const state = { db: null, sourceDb: null, activeView: "home", selectedCountryId: "", selectedProductId: "", selectedSkuProductId: "", selectedBundleId: "", previousCountryId: "", previousProductId: "", previousSkuProductId: "", previousBundleId: "", selectedZone: "europe", countrySort: "alpha", productSort: "alpha", skuProductSort: "alpha", bundleSort: "alpha", countryCreationDraft: null, productCreationDraft: null, bundleCreationDraft: null, bundleEditorDraft: null, listFilters: { countries: { validated: false, unvalidated: false, empty: false }, products: { validated: false, unvalidated: false, empty: false }, skus: { validated: false, unvalidated: false, empty: false }, bundles: { validated: false, unvalidated: false, empty: false } }, dirty: false };
       let copyFeedbackTimer = 0;
       let draftSaveTimer = 0;
@@ -1358,6 +1359,49 @@
       const clone = (value) => structuredClone(value);
       const normalize = (value) => text(value).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
       const esc = (value) => String(value == null ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      function sanitizeRichText(value) {
+        const template = document.createElement("template");
+        template.innerHTML = String(value == null ? "" : value);
+        const serializeChildren = (parent) => {
+          let html = "";
+          const nodes = Array.from(parent.childNodes);
+          nodes.forEach((node, index) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              html += esc(node.nodeValue);
+              return;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return;
+            const tag = node.tagName.toLowerCase();
+            if (tag === "br") {
+              html += "<br>";
+              return;
+            }
+            if (tag === "strong" || tag === "b" || tag === "em" || tag === "i") {
+              const safeTag = tag === "strong" || tag === "b" ? "strong" : "em";
+              html += `<${safeTag}>${serializeChildren(node)}</${safeTag}>`;
+              return;
+            }
+            if (tag === "div" || tag === "p") {
+              if (html && !html.endsWith("<br>")) html += "<br>";
+              html += serializeChildren(node);
+              if (index < nodes.length - 1 && !html.endsWith("<br>")) html += "<br>";
+              return;
+            }
+            html += esc(node.outerHTML || node.textContent || "");
+          });
+          return html;
+        };
+        return serializeChildren(template.content).replace(/(?:<br>)+$/g, "");
+      }
+
+      function richTextToPlainText(value) {
+        const template = document.createElement("template");
+        template.innerHTML = sanitizeRichText(value).replace(/<br>/g, "\n");
+        return String(template.content.textContent || "").replace(/\u00a0/g, " ");
+      }
+
+      const richTextHasContent = (value) => !!text(richTextToPlainText(value));
+      const richTextEditorHtml = (value, attributes = "") => `<div class="rich-text-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-keyshortcuts="Control+B Control+I Meta+B Meta+I" spellcheck="true" ${attributes}>${sanitizeRichText(value)}</div>`;
       const labels = { yes: "Yes", no: "No", temp: "Temporary", us: "US", retailer: "Retailer", europe: "Europe", usa: "USA", canada: "Canada", hong_kong_taiwan: "Hong Kong / Taiwan", australia: "Australia", rest_of_world: "Rest of world", check_retailer: "Check with retailer" };
       const label = (value) => labels[value] || text(value).replace(/_/g, " ");
       const optionHtml = (values, current) => values.map((value) => `<option value="${esc(value)}"${value === current ? " selected" : ""}>${esc(label(value))}</option>`).join("");
@@ -1461,8 +1505,8 @@
 
       function productHasNote(record) {
         if (!record) return false;
-        if (text(record.note)) return true;
-        return Object.values(record.zones || {}).some((zone) => text(zone && zone.note));
+        if (richTextHasContent(record.note)) return true;
+        return Object.values(record.zones || {}).some((zone) => richTextHasContent(zone && zone.note));
       }
 
       function normalizeSkuValues(value) {
@@ -1831,6 +1875,41 @@
         });
       }
 
+      function bindRichTextEditor(editor, onChange, maxLength = 0) {
+        if (!editor) return;
+        const commit = () => onChange(sanitizeRichText(editor.innerHTML));
+        editor.addEventListener("keydown", (event) => {
+          if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+          const command = event.key.toLowerCase() === "b" ? "bold" : event.key.toLowerCase() === "i" ? "italic" : "";
+          if (!command) return;
+          event.preventDefault();
+          document.execCommand(command, false);
+          commit();
+        });
+        editor.addEventListener("paste", (event) => {
+          event.preventDefault();
+          let pastedText = event.clipboardData ? event.clipboardData.getData("text/plain") : "";
+          if (maxLength) {
+            const available = Math.max(0, maxLength - richTextToPlainText(editor.innerHTML).length);
+            pastedText = pastedText.slice(0, available);
+          }
+          document.execCommand("insertText", false, pastedText);
+        });
+        editor.addEventListener("drop", (event) => event.preventDefault());
+        editor.addEventListener("input", () => {
+          if (maxLength && richTextToPlainText(editor.innerHTML).length > maxLength) {
+            document.execCommand("undo", false);
+            return;
+          }
+          commit();
+        });
+        editor.addEventListener("blur", () => {
+          const sanitized = sanitizeRichText(editor.innerHTML);
+          if (editor.innerHTML !== sanitized) editor.innerHTML = sanitized;
+          onChange(sanitized);
+        });
+      }
+
       function markDirty() {
         if (!state.db) return;
         state.dirty = true;
@@ -1907,6 +1986,16 @@
         if (!state.db.countries[id].rma || typeof state.db.countries[id].rma !== "object") state.db.countries[id].rma = {};
         if (!state.db.countries[id].spare_parts || typeof state.db.countries[id].spare_parts !== "object") state.db.countries[id].spare_parts = {};
         return state.db.countries[id];
+      }
+
+      function ensureCountryTemporaryComment(id) {
+        const country = ensureCountry(id);
+        if (!country.temporary_comment || typeof country.temporary_comment !== "object" || Array.isArray(country.temporary_comment)) {
+          country.temporary_comment = { enabled: false, sections: [], comment: "" };
+        }
+        if (!Array.isArray(country.temporary_comment.sections)) country.temporary_comment.sections = [];
+        if (typeof country.temporary_comment.comment !== "string") country.temporary_comment.comment = "";
+        return country.temporary_comment;
       }
 
       function defaultZone() {
@@ -2255,7 +2344,12 @@
         const query = normalize(els.countrySearch.value);
         const visible = countries().filter((country) => {
           const matchesQuery = !query || normalize([
-            country.id, country.name, country.aliases.join(" "), country.record.ga_zone, country.record.note
+            country.id,
+            country.name,
+            country.aliases.join(" "),
+            country.record.ga_zone,
+            richTextToPlainText(country.record.note),
+            richTextToPlainText(country.record.temporary_comment && country.record.temporary_comment.comment)
           ].join(" ")).includes(query);
           return matchesQuery && matchesListFilters("countries", country.id, { empty: country.dataState === "empty" });
         });
@@ -2266,7 +2360,7 @@
         els.countryList.innerHTML = rows.map(({ id, name, record, dataState, isDraft }) => `
           <button type="button" class="item${id === state.selectedCountryId ? " is-active" : ""}${isDraft ? " is-draft" : checkedClass("countries", id)}${dataState === "empty" ? " has-no-data" : ""}" data-country="${esc(id)}">
             <span class="title-row"><strong>${esc(name)}</strong><span class="meta">${esc(id)} · ${esc(label(record.ga_zone))}</span></span>
-            <span class="country-statuses">${isDraft ? '<span class="badge temp">Temporary</span>' : `<span class="badge ${esc(record.spare_parts && record.spare_parts.status)}">SP ${esc(label(record.spare_parts && record.spare_parts.status))}</span><span class="badge ${esc(record.rma && record.rma.status)}">RMA ${esc(label(record.rma && record.rma.status))}</span>${text(record.note) ? '<span class="badge note-badge">Note</span>' : ""}`}</span>
+            <span class="country-statuses">${isDraft ? '<span class="badge temp">Temporary</span>' : `<span class="badge ${esc(record.spare_parts && record.spare_parts.status)}">SP ${esc(label(record.spare_parts && record.spare_parts.status))}</span><span class="badge ${esc(record.rma && record.rma.status)}">RMA ${esc(label(record.rma && record.rma.status))}</span>${richTextHasContent(record.note) ? '<span class="badge note-badge">Note</span>' : ""}`}</span>
           </button>
         `).join("") || '<div class="empty">No countries</div>';
         els.countryList.querySelectorAll("[data-country]").forEach((button) => button.addEventListener("click", () => {
@@ -2296,6 +2390,11 @@
         const rmaControl = record.rma.status === "yes"
           ? `<div class="field"><div class="service-head"><label>Warranty duration</label><label class="checkline"><input id="rmaCheckRetailer" type="checkbox" ${rmaCheckRetailer ? "checked" : ""}> Check with retailer</label></div><select id="rmaWarrantyInput" class="${rmaCheckRetailer ? "hidden" : ""}" data-country-field="rma.warranty_duration">${warrantyOptions(record.rma.warranty_duration)}</select></div>`
           : "";
+        const temporaryComment = record.temporary_comment && typeof record.temporary_comment === "object"
+          ? record.temporary_comment
+          : { enabled: false, sections: [], comment: "" };
+        const temporaryCommentEnabled = temporaryComment.enabled === true;
+        const temporarySections = new Set(Array.isArray(temporaryComment.sections) ? temporaryComment.sections : []);
         els.countryEditor.innerHTML = `
           <div class="data-card country-editor-card">
             <div class="editor-header">
@@ -2321,7 +2420,30 @@
             </div>
             <div class="editor-section note-section">
               <div class="section-title">Country note</div>
-              <textarea class="note-large" aria-label="Country note" data-country-field="note">${esc(record.note)}</textarea>
+              ${richTextEditorHtml(record.note, 'aria-label="Country note" data-country-rich-field="note"')}
+            </div>
+            <div class="editor-section temporary-comment-section">
+              <div class="section-title temporary-comment-title">
+                <span>Temporary override</span>
+                <div class="temporary-comment-toggle">
+                  <span>Temp Comment</span>
+                  <label class="switch">
+                    <input type="checkbox" data-country-temp-comment-toggle ${temporaryCommentEnabled ? "checked" : ""} aria-label="Temp Comment">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="temporary-comment-panel" ${temporaryCommentEnabled ? "" : "hidden"}>
+                <div class="temporary-comment-sections" role="group" aria-label="Affected sections">
+                  ${[
+                    ["spare_parts", "SPARE PART"],
+                    ["rma", "RMA"],
+                    ["paid_rma", "PAID RMA"],
+                    ["exchange", "EXCHANGE"]
+                  ].map(([section, sectionLabel]) => `<label class="checkline"><input type="checkbox" data-country-temp-section="${section}" ${temporarySections.has(section) ? "checked" : ""}> ${sectionLabel}</label>`).join("")}
+                </div>
+                ${richTextEditorHtml(temporaryComment.comment, 'aria-label="Temporary comment" data-country-temp-comment placeholder="Temporary comment"')}
+              </div>
             </div>
           </div>
         `;
@@ -2361,6 +2483,31 @@
           };
           input.addEventListener("input", updateCountryField);
           input.addEventListener("change", updateCountryField);
+        });
+        bindRichTextEditor(els.countryEditor.querySelector("[data-country-rich-field]"), (value) => {
+          ensureCountry(id).note = value;
+          if (!isDraft) markDirty();
+          renderCountryList();
+        });
+        const temporaryCommentToggle = els.countryEditor.querySelector("[data-country-temp-comment-toggle]");
+        if (temporaryCommentToggle) temporaryCommentToggle.addEventListener("change", () => {
+          ensureCountryTemporaryComment(id).enabled = temporaryCommentToggle.checked;
+          if (!isDraft) markDirty();
+          renderAfterCheckboxChange(temporaryCommentToggle, renderCountryEditor);
+        });
+        els.countryEditor.querySelectorAll("[data-country-temp-section]").forEach((input) => {
+          input.addEventListener("change", () => {
+            const temporaryCommentRecord = ensureCountryTemporaryComment(id);
+            const sections = new Set(temporaryCommentRecord.sections);
+            if (input.checked) sections.add(input.dataset.countryTempSection);
+            else sections.delete(input.dataset.countryTempSection);
+            temporaryCommentRecord.sections = TEMP_COMMENT_SECTIONS.filter((section) => sections.has(section));
+            if (!isDraft) markDirty();
+          });
+        });
+        bindRichTextEditor(els.countryEditor.querySelector("[data-country-temp-comment]"), (value) => {
+          ensureCountryTemporaryComment(id).comment = value;
+          if (!isDraft) markDirty();
         });
         const rmaCheckRetailerInput = $("rmaCheckRetailer");
         if (rmaCheckRetailerInput) rmaCheckRetailerInput.addEventListener("change", (event) => {
@@ -2561,7 +2708,7 @@
                 </div>
                 <div class="exchange-comment-panel" ${zone.exchange && typeof zone.exchange.comment === "string" ? "" : "hidden"}>
                   <label>Decision comment</label>
-                  <textarea data-product-field="exchange.comment" maxlength="280" placeholder="Short comment (280 characters max.)">${esc(zone.exchange && zone.exchange.comment || "")}</textarea>
+                  ${richTextEditorHtml(zone.exchange && zone.exchange.comment || "", 'aria-label="Decision comment" data-product-rich-field="exchange.comment" data-maxlength="280"')}
                 </div>
               </section>
               <section class="editor-section product-paid-section">
@@ -2589,7 +2736,7 @@
             </div>
             <div class="editor-section note-section">
               <div class="section-title">Global product note</div>
-              <textarea class="note-large" aria-label="Global product note" data-product-global-note>${esc(product.note || "")}</textarea>
+              ${richTextEditorHtml(product.note || "", 'aria-label="Global product note" data-product-global-note')}
             </div>
           </div>
         `;
@@ -2632,11 +2779,19 @@
         });
         const globalProductNote = els.productEditor.querySelector("[data-product-global-note]");
         if (globalProductNote) {
-          globalProductNote.addEventListener("input", () => {
-            product.note = globalProductNote.value;
+          bindRichTextEditor(globalProductNote, (value) => {
+            product.note = value;
             if (!isDraft) markDirty();
             renderProductList();
           });
+        }
+        const exchangeRichComment = els.productEditor.querySelector('[data-product-rich-field="exchange.comment"]');
+        if (exchangeRichComment) {
+          bindRichTextEditor(exchangeRichComment, (value) => {
+            ensureProductZone(id, state.selectedZone).exchange.comment = value;
+            if (!isDraft) markDirty();
+            renderProductList();
+          }, 280);
         }
         const exchangeCommentToggle = els.productEditor.querySelector("[data-exchange-comment-toggle]");
         if (exchangeCommentToggle) {

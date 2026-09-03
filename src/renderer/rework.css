@@ -1007,6 +1007,72 @@ main {
   background: rgba(88, 174, 237, .055);
 }
 
+.rich-text-editor {
+  width: 100%;
+  min-height: 76px;
+  padding: 9px 10px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: none;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.45;
+  resize: vertical;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rich-text-editor:focus {
+  border-color: var(--line-strong);
+  background: var(--control-hover);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .06);
+}
+
+.rich-text-editor[placeholder]:empty::before {
+  color: var(--quiet);
+  content: attr(placeholder);
+  pointer-events: none;
+}
+
+.rich-text-editor strong { font-weight: 800; }
+.rich-text-editor em { font-style: italic; }
+.exchange-comment-panel .rich-text-editor { min-height: 76px; }
+
+.temporary-comment-section { gap: 9px; }
+.temporary-comment-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.temporary-comment-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.temporary-comment-panel {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(23, 25, 28, .46);
+}
+
+.temporary-comment-panel[hidden] { display: none; }
+.temporary-comment-sections { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.temporary-comment-sections .checkline { color: var(--text-soft); font-weight: 700; }
+
 .product-editor-card .service-control,
 .product-editor-card .paid-rma-details,
 .product-editor-card .exchange-comment-panel {
