@@ -1,0 +1,30 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const { audit } = require('./audit-database.cjs');
+const source = fs.readFileSync(require.resolve('../src/renderer/index.html'), 'utf8');
+new vm.Script(source.match(/<script>([\s\S]*?)<\/script>/)[1]);
+const locations = { L001: { name: 'First' }, L005: { name: 'CHECK HERE' }, L006: { name: 'Carentoir' } };
+const context = vm.createContext({ text: value => String(value || '').trim(), normalize: value => String(value || '').toLowerCase(), esc: value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'), label: value => value === "check_retailer" ? "Check with retailer" : String(value), ids: () => locations, feeToText: value => value == null ? '' : String(value) });
+for (const name of ['resolveLocationId', 'locationOptions', 'paidDisplayStatus', 'serviceToggleHtml', 'warrantyOptions']) {
+  const start = source.indexOf(`      function ${name}(`);
+  const end = source.indexOf('\n      }', start) + 8;
+  vm.runInContext(source.slice(start, end), context);
+}
+assert.match(context.locationOptions('L006'), /value="L006" selected/);
+assert.match(context.locationOptions('L005'), /value="L005" selected/);
+assert.match(context.locationOptions('Carentoir'), /value="L006" selected/);
+assert.match(context.locationOptions('L999'), /value="L999" selected/);
+assert.equal(context.paidDisplayStatus({ status: 'temp', price: 25 }), 'temp');
+assert.equal(context.paidDisplayStatus({ status: 'no', price: 25 }), 'no');
+assert.equal(context.paidDisplayStatus({ price: 25 }), 'yes');
+assert.match(context.serviceToggleHtml('rma', 'temp'), />Temporary<\/span>/);
+assert.match(context.warrantyOptions('check_retailer'), /value="check_retailer" selected/);
+assert.match(context.warrantyOptions(null), /value="" selected>N\/A/);
+assert.match(context.warrantyOptions(7), /value="7" selected/);
+const bad = { ids: { products: { P1: { name: 'Shared' }, P2: { name: 'Shared' } }, countries: {}, bundles: {} }, countries: {}, products: { P1: { zones: { europe: { rma: { status: 'maybe', location: 'L999' }, spare_parts: { status: 'yes' }, exchange: { status: 'both' } } } } } };
+const report = audit(bad);
+for (const code of ['invalid-status', 'missing-reference', 'missing-product-record', 'legacy-both', 'name-collision']) assert(report.issues.some(issue => issue.code === code), code);
+assert.equal(report.counts.missingZones, 11);
+assert.equal(audit(null).issues[0].code, 'invalid-root');
+console.log('DBmanager contract OK: syntax, locations, temporary state, paid inference and invalid-data diagnostics.');

@@ -1,28 +1,9 @@
 const { app, BrowserWindow, clipboard, dialog, ipcMain } = require("electron");
-const fs = require("fs/promises");
+const { assertDatabaseContent, readDatabaseFile, writeDatabaseFile } = require("./database-files.cjs");
 const path = require("path");
 
 const databasePath = () => path.join(app.getAppPath(), "cairm-full-database.json");
 const appIconPath = () => path.join(__dirname, "src", "icons", process.platform === "win32" ? "app-icon.ico" : "app-icon.png");
-const MAX_DATABASE_BYTES = 25 * 1024 * 1024;
-
-function assertDatabaseContent(json) {
-  if (typeof json !== "string" || !json.trim()) {
-    throw new Error("CairmDB content must be non-empty JSON.");
-  }
-  if (Buffer.byteLength(json, "utf8") > MAX_DATABASE_BYTES) {
-    throw new Error("The CairmDB file exceeds the 25 MB limit.");
-  }
-}
-
-async function readDatabaseFile(filePath) {
-  const stats = await fs.stat(filePath);
-  if (stats.size > MAX_DATABASE_BYTES) {
-    throw new Error("The CairmDB file exceeds the 25 MB limit.");
-  }
-  return fs.readFile(filePath, "utf8");
-}
-
 function createWindow() {
   const window = new BrowserWindow({
     width: 1440,
@@ -36,14 +17,19 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
+      sandbox: true,
       nodeIntegration: false
     }
   });
+  // The renderer is local-only; imported content must never navigate this window.
+  window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  window.webContents.on("will-navigate", (event) => event.preventDefault());
   window.loadFile(path.join(__dirname, "src", "renderer", "index.html"));
 }
 
 app.whenReady().then(() => {
   if (process.platform === "darwin" && app.dock) app.dock.setIcon(appIconPath());
+  ipcMain.handle("app:version", () => app.getVersion());
   ipcMain.handle("database:default", () => readDatabaseFile(databasePath()));
   ipcMain.handle("database:open", async () => {
     const result = await dialog.showOpenDialog({
@@ -62,7 +48,7 @@ app.whenReady().then(() => {
       filters: [{ name: "CairmDB JSON", extensions: ["json"] }]
     });
     if (result.canceled || !result.filePath) return { saved: false };
-    await fs.writeFile(result.filePath, json, "utf8");
+    await writeDatabaseFile(result.filePath, json);
     return { saved: true };
   });
   ipcMain.handle("database:copy", (_event, json) => {

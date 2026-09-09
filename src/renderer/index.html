@@ -1172,7 +1172,7 @@
   <div class="app">
     <header>
       <div class="topbar">
-        <h1><span>DBmanager</span><span class="version-badge" title="Version de l’application">v1.0.3</span></h1>
+        <h1><span>DBmanager</span><span id="appVersion" class="version-badge" title="Version de l’application" hidden></span></h1>
         <div class="status" id="status" aria-live="polite"></div>
         <div class="top-actions">
           <input id="importDb" type="file" accept="application/json,.json" hidden>
@@ -1308,7 +1308,6 @@
   <script>
     (() => {
       const STORAGE_KEY = "cairmdb-manager-draft";
-      const RMA_LOCATION_IDS = ["L001", "L002", "L003", "L004"];
       const ZONES = ["europe", "usa", "canada", "hong_kong_taiwan", "australia", "rest_of_world"];
       const STATUS = ["yes", "no", "temp"];
       const EXCHANGE_STATUS = ["retailer", "us", "temp", "no"];
@@ -1407,7 +1406,8 @@
       const optionHtml = (values, current) => values.map((value) => `<option value="${esc(value)}"${value === current ? " selected" : ""}>${esc(label(value))}</option>`).join("");
       const exchangeOptionHtml = (current) => {
         const exchangeLabels = { retailer: "Retailer", us: "Us", temp: "Temp", no: "No" };
-        return EXCHANGE_STATUS.map((value) => `<option value="${esc(value)}"${value === current ? " selected" : ""}>${esc(exchangeLabels[value])}</option>`).join("");
+        const values = EXCHANGE_STATUS.includes(current) ? EXCHANGE_STATUS : [current, ...EXCHANGE_STATUS];
+        return values.map((value) => `<option value="${esc(value)}"${value === current ? " selected" : ""}>${esc(exchangeLabels[value] || (value === "both" ? "Retailer (legacy: both)" : value ? `Unknown: ${value}` : "N/A"))}</option>`).join("");
       };
       const ids = (scope) => state.db && state.db.ids && state.db.ids[scope] ? state.db.ids[scope] : {};
 
@@ -1430,7 +1430,9 @@
       }
 
       function warrantyOptions(current) {
-        return [1, 2, 3, 4, 5].map((value) => `<option value="${value}"${String(current) === String(value) ? " selected" : ""}>${value}</option>`).join("");
+        const values = [1, 2, 3, 4, 5, "check_retailer"];
+        if (!values.some((value) => String(value) === String(current))) values.unshift(current == null ? "" : current);
+        return values.map((value) => `<option value="${esc(value)}"${String(current == null ? "" : current) === String(value) ? " selected" : ""}>${esc(value === "" ? "N/A" : label(value))}</option>`).join("");
       }
 
       function defaultCountryRecord() {
@@ -1831,7 +1833,7 @@
 
       function serviceToggleHtml(name, status) {
         const active = status === "yes";
-        const stateLabel = active ? "Yes" : "No";
+        const stateLabel = status === "temp" ? "Temporary" : active ? "Yes" : status === "no" ? "No" : "N/A";
         return `
           <div class="toggle-row is-${esc(status)}">
             <label class="switch">
@@ -2384,10 +2386,10 @@
           ? sourceRecord
           : defaultCountryRecord();
         const rmaCheckRetailer = record.rma.warranty_duration === "check_retailer";
-        const sparePartsControl = record.spare_parts.status === "yes"
+        const sparePartsControl = ["yes", "temp"].includes(record.spare_parts.status)
           ? `<div class="field"><label>Warranty duration</label><select data-country-field="spare_parts.warranty_duration">${warrantyOptions(record.spare_parts.warranty_duration)}</select></div>`
           : "";
-        const rmaControl = record.rma.status === "yes"
+        const rmaControl = ["yes", "temp"].includes(record.rma.status)
           ? `<div class="field"><div class="service-head"><label>Warranty duration</label><label class="checkline"><input id="rmaCheckRetailer" type="checkbox" ${rmaCheckRetailer ? "checked" : ""}> Check with retailer</label></div><select id="rmaWarrantyInput" class="${rmaCheckRetailer ? "hidden" : ""}" data-country-field="rma.warranty_duration">${warrantyOptions(record.rma.warranty_duration)}</select></div>`
           : "";
         const temporaryComment = record.temporary_comment && typeof record.temporary_comment === "object"
@@ -2611,11 +2613,12 @@
         const resolved = resolveLocationId(current);
         const locations = ids("locations");
         const options = [`<option value=""${resolved ? "" : " selected"}></option>`];
-        RMA_LOCATION_IDS.forEach((id) => {
+        Object.keys(locations).sort().forEach((id) => {
           const location = locations[id];
           if (!location) return;
           options.push(`<option value="${esc(id)}"${id === resolved ? " selected" : ""}>${esc(location && location.name || id)}</option>`);
         });
+        if (resolved && !locations[resolved]) options.push(`<option value="${esc(resolved)}" selected>${esc(resolved)} · Missing location</option>`);
         return options.join("");
       }
 
@@ -2629,7 +2632,7 @@
         state.selectedProductId = id;
         const isDraft = isProductCreationDraft(id);
         const product = isDraft ? state.productCreationDraft.record : hasProductGaData(state.db.products[id]) ? state.db.products[id] : null;
-        if (!product) {
+        if (!product || (!isDraft && !product.zones?.[state.selectedZone])) {
           els.productEditor.innerHTML = `
             <div class="data-card">
               <div class="editor-header">
@@ -2672,10 +2675,10 @@
         const defaultFeeText = feeToText(zone.rma.default_transport_fee);
         const paidStatus = paidDisplayStatus(zone.rma.paid);
         const rmaStatus = zone.rma.status || "no";
-        const rmaControl = rmaStatus === "yes"
+        const rmaControl = (rmaStatus === "yes" || rmaStatus === "temp")
           ? `<div class="field"><label>To</label><select data-product-field="rma.location">${locationOptions(zone.rma.location || "")}</select></div>`
           : "";
-        const paidRmaActive = paidStatus === "yes";
+        const paidRmaActive = paidStatus === "yes" || paidStatus === "temp";
         els.productEditor.innerHTML = `
           <div class="data-card product-editor-card">
             <div class="editor-header">
@@ -2735,6 +2738,10 @@
               </section>
             </div>
             <div class="editor-section note-section">
+              <div class="section-title">Regional note · ${esc(label(state.selectedZone))}</div>
+              ${richTextEditorHtml(zone.note || "", 'aria-label="Regional product note" data-product-regional-note')}
+            </div>
+            <div class="editor-section note-section">
               <div class="section-title">Global product note</div>
               ${richTextEditorHtml(product.note || "", 'aria-label="Global product note" data-product-global-note')}
             </div>
@@ -2776,6 +2783,11 @@
           };
           input.addEventListener("input", updateProductField);
           input.addEventListener("change", updateProductField);
+        });
+        const regionalProductNote = els.productEditor.querySelector("[data-product-regional-note]");
+        if (regionalProductNote) bindRichTextEditor(regionalProductNote, (value) => {
+          ensureProductZone(id, state.selectedZone).note = value;
+          if (!isDraft) markDirty();
         });
         const globalProductNote = els.productEditor.querySelector("[data-product-global-note]");
         if (globalProductNote) {
@@ -3192,7 +3204,7 @@
       }
 
       function syncActiveBundles() {
-        state.db.activeBundles = bundles().map((bundle) => ({ id: bundle.id, name: bundle.name, status: "manual", composition: bundle.products.map(productName).join(" + "), products: bundle.products, source: "cairmdb-manager" }));
+        state.db.activeBundles = bundles().map((bundle) => ({ id: bundle.id, name: bundle.name, products: bundle.products }));
       }
 
       function updateCurrentBundleProducts(transform) {
@@ -3646,6 +3658,12 @@
         if (document.visibilityState === "hidden") flushDraftPersistence();
       });
 
+      if (window.cairmDesktop?.getVersion) {
+        window.cairmDesktop.getVersion().then((version) => {
+          $("appVersion").textContent = `v${version}`;
+          $("appVersion").hidden = false;
+        }).catch((error) => console.warn("Application version unavailable", error));
+      }
       loadDb();
     })();
   </script>
