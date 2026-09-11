@@ -50,3 +50,11 @@ npm run dist:linux
 Les résultats se trouvent dans `dist`. La cible Windows est un exécutable portable x64. Les builds supprimés pour nettoyer le projet sont régénérables ; les dépendances et la base sont conservées.
 
 La documentation fonctionnelle détaillée se trouve dans le dépôt frère : [CairmDB Manager](<../Cairm/docs/obsidian/08 - CairmDB Manager.md>) et [WWSxGA](<../Cairm/docs/obsidian/06 - WWSxGA.md>).
+
+## États et informations importantes (1.2.0)
+
+Les quatre offres pays et produit utilisent Yes/No. Les anciens Temp restent affichés en orange et conservés à la sauvegarde ; ils peuvent être remplacés par Yes/No, mais ne sont plus proposés pour une nouvelle saisie. Les nouvelles fiches initialisent les offres à No. Le gris de Cairm correspond uniquement à des données absentes.
+
+Une information importante, enregistrée dans le champ compatible `temporary_comment`, cible une ou plusieurs offres. Elle peut être définie pour le pays, le produit global ou une région produit. Elle s’ajoute aux notes ordinaires et conserve les disponibilités. Dans Cairm 0.39.0+, le cadre de la source devient bleu, ainsi que les offres concernées du produit. Les alertes pays et produit se cumulent. Exchange sépare maintenant disponibilité et destination ; les anciennes destinations sont conservées.
+
+Validation navigateur optionnelle (Playwright et Edge requis) : `NODE_PATH=/tmp/cairm-browser-check/node_modules node scripts/check-editor-browser.cjs`.

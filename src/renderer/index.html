@@ -1404,11 +1404,6 @@
       const labels = { yes: "Yes", no: "No", temp: "Temporary", us: "US", retailer: "Retailer", europe: "Europe", usa: "USA", canada: "Canada", hong_kong_taiwan: "Hong Kong / Taiwan", australia: "Australia", rest_of_world: "Rest of world", check_retailer: "Check with retailer" };
       const label = (value) => labels[value] || text(value).replace(/_/g, " ");
       const optionHtml = (values, current) => values.map((value) => `<option value="${esc(value)}"${value === current ? " selected" : ""}>${esc(label(value))}</option>`).join("");
-      const exchangeOptionHtml = (current) => {
-        const exchangeLabels = { retailer: "Retailer", us: "Us", temp: "Temp", no: "No" };
-        const values = EXCHANGE_STATUS.includes(current) ? EXCHANGE_STATUS : [current, ...EXCHANGE_STATUS];
-        return values.map((value) => `<option value="${esc(value)}"${value === current ? " selected" : ""}>${esc(exchangeLabels[value] || (value === "both" ? "Retailer (legacy: both)" : value ? `Unknown: ${value}` : "N/A"))}</option>`).join("");
-      };
       const ids = (scope) => state.db && state.db.ids && state.db.ids[scope] ? state.db.ids[scope] : {};
 
       function sortByMode(rows, mode) {
@@ -1436,7 +1431,7 @@
       }
 
       function defaultCountryRecord() {
-        return { ga_zone: "rest_of_world", rma: { status: "no", warranty_duration: "check_retailer" }, spare_parts: { status: "no", warranty_duration: "check_retailer" }, note: "" };
+        return { ga_zone: "rest_of_world", rma: { status: "no", warranty_duration: "check_retailer" }, spare_parts: { status: "no", warranty_duration: "check_retailer" }, paid_rma: { status: "no" }, exchange: { status: "no" }, note: "" };
       }
 
       function reconcileCountryRecords(db) {
@@ -1832,6 +1827,7 @@
       }
 
       function serviceToggleHtml(name, status) {
+        if (status === "temp") return `<div class="toggle-row is-temp"><select class="toggle-state temp" data-service-legacy aria-label="${esc(name)} availability"><option value="temp" selected>Temporary (legacy)</option><option value="yes">Yes</option><option value="no">No</option></select></div>`;
         const active = status === "yes";
         const stateLabel = status === "temp" ? "Temporary" : active ? "Yes" : status === "no" ? "No" : "N/A";
         return `
@@ -1852,7 +1848,6 @@
               <label>${esc(title)}</label>
               <div class="service-head-actions">
                 ${serviceToggleHtml(name, status)}
-                <label class="checkline temporary-check"><input type="checkbox" data-service-temp ${status === "temp" ? "checked" : ""}> Temporary</label>
               </div>
             </div>
             ${control ? `<div class="service-control">${control}</div>` : ""}
@@ -1864,16 +1859,18 @@
         root.querySelectorAll("[data-service]").forEach((row) => {
           const name = row.dataset.service;
           const toggle = row.querySelector("[data-service-toggle]");
-          const temp = row.querySelector("[data-service-temp]");
-          const update = (input) => {
-            setServiceStatus(getTarget(name), temp.checked ? "temp" : "", toggle.checked);
+          const legacy = row.querySelector("[data-service-legacy]");
+          const update = (input, status) => {
+            const target = getTarget(name);
+            if (name === "exchange" && ["retailer", "us", "both"].includes(target.status)) {
+              target.destination = target.status === "both" ? "retailer" : target.status;
+            }
+            target.status = status;
+            if (name === "exchange" && status === "yes") target.destination ||= "retailer";
             renderAfterCheckboxChange(input, afterChange);
           };
-          toggle.addEventListener("change", () => {
-            if (toggle.checked) temp.checked = false;
-            update(toggle);
-          });
-          temp.addEventListener("change", () => update(temp));
+          if (toggle) toggle.addEventListener("change", () => update(toggle, toggle.checked ? "yes" : "no"));
+          if (legacy) legacy.addEventListener("change", () => update(legacy, legacy.value));
         });
       }
 
@@ -1990,18 +1987,48 @@
         return state.db.countries[id];
       }
 
-      function ensureCountryTemporaryComment(id) {
-        const country = ensureCountry(id);
-        if (!country.temporary_comment || typeof country.temporary_comment !== "object" || Array.isArray(country.temporary_comment)) {
-          country.temporary_comment = { enabled: false, sections: [], comment: "" };
-        }
-        if (!Array.isArray(country.temporary_comment.sections)) country.temporary_comment.sections = [];
-        if (typeof country.temporary_comment.comment !== "string") country.temporary_comment.comment = "";
-        return country.temporary_comment;
+      function importantInformationHtml(record, scope, title) {
+        const info = record.temporary_comment || {};
+        return `<div class="editor-section temporary-comment-section" data-important-scope="${esc(scope)}">
+          <div class="section-title temporary-comment-title"><span>${esc(title)}</span>
+            <label class="switch"><input type="checkbox" data-important-enabled ${info.enabled ? "checked" : ""} aria-label="${esc(title)}"><span class="slider"></span></label>
+          </div>
+          <div ${info.enabled ? "" : "hidden"}>
+            <div class="temporary-comment-sections">${TEMP_COMMENT_SECTIONS.map((section) => `<label class="checkline"><input type="checkbox" data-important-section="${section}" ${(info.sections || []).includes(section) ? "checked" : ""}>${({spare_parts: "Spare parts", rma: "RMA", paid_rma: "Paid RMA", exchange: "Exchange"})[section]}</label>`).join("")}</div>
+            ${richTextEditorHtml(info.comment || "", 'data-important-comment aria-label="Important information"')}
+            <p>Select the affected offers and add a message. Existing availability and notes are kept.</p>
+          </div>
+        </div>`;
+      }
+
+      function bindImportantInformation(root, getRecord, onChange, rerender) {
+        root.querySelectorAll("[data-important-scope]").forEach((block) => {
+          const getInfo = () => {
+            const record = getRecord(block.dataset.importantScope);
+            record.temporary_comment ||= { enabled: false, sections: [], comment: "" };
+            return record.temporary_comment;
+          };
+          const toggle = block.querySelector("[data-important-enabled]");
+          toggle.addEventListener("change", () => {
+            getInfo().enabled = toggle.checked;
+            onChange();
+            renderAfterCheckboxChange(toggle, rerender);
+          });
+          block.querySelectorAll("[data-important-section]").forEach((input) => input.addEventListener("change", () => {
+            getInfo().sections = Array.from(block.querySelectorAll("[data-important-section]:checked"), (item) => item.dataset.importantSection);
+            onChange();
+          }));
+          bindRichTextEditor(block.querySelector("[data-important-comment]"), (value) => { getInfo().comment = value; onChange(); });
+        });
+      }
+
+      function exchangeDisplayStatus(exchange) {
+        const status = exchange && exchange.status;
+        return ["us", "retailer", "both"].includes(status) ? "yes" : status || "no";
       }
 
       function defaultZone() {
-        return { rma: { status: "no", location: "", paid: { location: "", price: null }, default_transport_fee: null, extra_transport_fees: {} }, spare_parts: { status: "no" }, exchange: { status: "" }, note: "" };
+        return { rma: { status: "no", location: "", paid: { status: "no", location: "", price: null }, default_transport_fee: null, extra_transport_fees: {} }, spare_parts: { status: "no" }, exchange: { status: "no", destination: "retailer" }, note: "" };
       }
 
       function ensureProduct(id) {
@@ -2035,11 +2062,11 @@
           rma: {
             ...fallback.rma,
             ...((zone && zone.rma) || {}),
-            paid: { ...fallback.rma.paid, ...((zone && zone.rma && zone.rma.paid) || {}) },
+            paid: { ...((zone && zone.rma && zone.rma.paid) || {}) },
             extra_transport_fees: { ...((zone && zone.rma && zone.rma.extra_transport_fees) || {}) }
           },
           spare_parts: { ...fallback.spare_parts, ...((zone && zone.spare_parts) || {}) },
-          exchange: { ...fallback.exchange, ...((zone && zone.exchange) || {}) }
+          exchange: { ...((zone && zone.exchange) || {}) }
         };
       }
 
@@ -2115,6 +2142,8 @@
             ga_zone: "rest_of_world",
             rma: { status: "no", warranty_duration: "check_retailer" },
             spare_parts: { status: "no", warranty_duration: 2 },
+            paid_rma: { status: "no" },
+            exchange: { status: "no" },
             note: ""
           }
         };
@@ -2136,7 +2165,7 @@
         clearListContext("skus");
         state.previousProductId = state.selectedProductId;
         const id = nextScopedId("products", "P");
-        state.productCreationDraft = { id, name: "", listContexts, record: { zones: {}, note: "" } };
+        state.productCreationDraft = { id, name: "", listContexts, record: { zones: { [state.selectedZone]: defaultZone() }, note: "" } };
         state.selectedProductId = id;
         renderGa();
         $("productName").focus();
@@ -2392,11 +2421,6 @@
         const rmaControl = ["yes", "temp"].includes(record.rma.status)
           ? `<div class="field"><div class="service-head"><label>Warranty duration</label><label class="checkline"><input id="rmaCheckRetailer" type="checkbox" ${rmaCheckRetailer ? "checked" : ""}> Check with retailer</label></div><select id="rmaWarrantyInput" class="${rmaCheckRetailer ? "hidden" : ""}" data-country-field="rma.warranty_duration">${warrantyOptions(record.rma.warranty_duration)}</select></div>`
           : "";
-        const temporaryComment = record.temporary_comment && typeof record.temporary_comment === "object"
-          ? record.temporary_comment
-          : { enabled: false, sections: [], comment: "" };
-        const temporaryCommentEnabled = temporaryComment.enabled === true;
-        const temporarySections = new Set(Array.isArray(temporaryComment.sections) ? temporaryComment.sections : []);
         els.countryEditor.innerHTML = `
           <div class="data-card country-editor-card">
             <div class="editor-header">
@@ -2418,35 +2442,15 @@
               <div class="service-grid">
                 ${serviceCardHtml("spare_parts", "Spare parts", record.spare_parts.status || "no", sparePartsControl)}
                 ${serviceCardHtml("rma", "RMA", record.rma.status || "no", rmaControl)}
+                ${serviceCardHtml("paid_rma", "Paid RMA", record.paid_rma && record.paid_rma.status || (["no", "temp"].includes(record.rma.status) ? "no" : "yes"))}
+                ${serviceCardHtml("exchange", "Exchange", record.exchange && record.exchange.status || "yes")}
               </div>
             </div>
             <div class="editor-section note-section">
               <div class="section-title">Country note</div>
               ${richTextEditorHtml(record.note, 'aria-label="Country note" data-country-rich-field="note"')}
             </div>
-            <div class="editor-section temporary-comment-section">
-              <div class="section-title temporary-comment-title">
-                <span>Temporary override</span>
-                <div class="temporary-comment-toggle">
-                  <span>Temp Comment</span>
-                  <label class="switch">
-                    <input type="checkbox" data-country-temp-comment-toggle ${temporaryCommentEnabled ? "checked" : ""} aria-label="Temp Comment">
-                    <span class="slider"></span>
-                  </label>
-                </div>
-              </div>
-              <div class="temporary-comment-panel" ${temporaryCommentEnabled ? "" : "hidden"}>
-                <div class="temporary-comment-sections" role="group" aria-label="Affected sections">
-                  ${[
-                    ["spare_parts", "SPARE PART"],
-                    ["rma", "RMA"],
-                    ["paid_rma", "PAID RMA"],
-                    ["exchange", "EXCHANGE"]
-                  ].map(([section, sectionLabel]) => `<label class="checkline"><input type="checkbox" data-country-temp-section="${section}" ${temporarySections.has(section) ? "checked" : ""}> ${sectionLabel}</label>`).join("")}
-                </div>
-                ${richTextEditorHtml(temporaryComment.comment, 'aria-label="Temporary comment" data-country-temp-comment placeholder="Temporary comment"')}
-              </div>
-            </div>
+            ${importantInformationHtml(record, "country", "Important information · Country")}
           </div>
         `;
         if (!isDraft) {
@@ -2464,7 +2468,7 @@
           $("saveCountry").addEventListener("click", saveCountry);
           $("cancelCountry").addEventListener("click", cancelCountryCreation);
         }
-        bindServiceToggle(els.countryEditor, (name) => ensureCountry(id)[name], () => {
+        bindServiceToggle(els.countryEditor, (name) => (ensureCountry(id)[name] ||= {}), () => {
           if (!isDraft) markDirty();
           renderCountryList();
           renderCountryEditor();
@@ -2491,26 +2495,7 @@
           if (!isDraft) markDirty();
           renderCountryList();
         });
-        const temporaryCommentToggle = els.countryEditor.querySelector("[data-country-temp-comment-toggle]");
-        if (temporaryCommentToggle) temporaryCommentToggle.addEventListener("change", () => {
-          ensureCountryTemporaryComment(id).enabled = temporaryCommentToggle.checked;
-          if (!isDraft) markDirty();
-          renderAfterCheckboxChange(temporaryCommentToggle, renderCountryEditor);
-        });
-        els.countryEditor.querySelectorAll("[data-country-temp-section]").forEach((input) => {
-          input.addEventListener("change", () => {
-            const temporaryCommentRecord = ensureCountryTemporaryComment(id);
-            const sections = new Set(temporaryCommentRecord.sections);
-            if (input.checked) sections.add(input.dataset.countryTempSection);
-            else sections.delete(input.dataset.countryTempSection);
-            temporaryCommentRecord.sections = TEMP_COMMENT_SECTIONS.filter((section) => sections.has(section));
-            if (!isDraft) markDirty();
-          });
-        });
-        bindRichTextEditor(els.countryEditor.querySelector("[data-country-temp-comment]"), (value) => {
-          ensureCountryTemporaryComment(id).comment = value;
-          if (!isDraft) markDirty();
-        });
+        bindImportantInformation(els.countryEditor, () => ensureCountry(id), () => { if (!isDraft) markDirty(); }, renderCountryEditor);
         const rmaCheckRetailerInput = $("rmaCheckRetailer");
         if (rmaCheckRetailerInput) rmaCheckRetailerInput.addEventListener("change", (event) => {
             ensureCountry(id).rma.warranty_duration = event.target.checked ? "check_retailer" : 2;
@@ -2701,13 +2686,8 @@
                 <div class="service-grid product-service-stack">
                   ${serviceCardHtml("spare_parts", "Spare parts", zone.spare_parts.status || "no")}
                   ${serviceCardHtml("rma", "RMA", rmaStatus, rmaControl)}
-                  <div class="service-card exchange-card">
-                    <div class="service-head">
-                      <label>Exchange</label>
-                      <label class="checkline exchange-comment-toggle" title="Add a decision comment"><input type="checkbox" data-exchange-comment-toggle ${zone.exchange && typeof zone.exchange.comment === "string" ? "checked" : ""}> comment</label>
-                    </div>
-                    <select data-product-field="exchange.status">${exchangeOptionHtml(zone.exchange && zone.exchange.status || "no")}</select>
-                  </div>
+                  ${serviceCardHtml("exchange", "Exchange", exchangeDisplayStatus(zone.exchange), exchangeDisplayStatus(zone.exchange) === "yes" ? `<div class="field"><label>To</label><select data-product-field="exchange.destination">${optionHtml(["retailer", "us"], zone.exchange.destination || (["us", "retailer"].includes(zone.exchange.status) ? zone.exchange.status : "retailer"))}</select></div>` : "")}
+                  <label class="checkline exchange-comment-toggle"><input type="checkbox" data-exchange-comment-toggle ${zone.exchange && typeof zone.exchange.comment === "string" ? "checked" : ""}> Comment</label>
                 </div>
                 <div class="exchange-comment-panel" ${zone.exchange && typeof zone.exchange.comment === "string" ? "" : "hidden"}>
                   <label>Decision comment</label>
@@ -2745,6 +2725,8 @@
               <div class="section-title">Global product note</div>
               ${richTextEditorHtml(product.note || "", 'aria-label="Global product note" data-product-global-note')}
             </div>
+            ${importantInformationHtml(zone, "region", `Important information · ${label(state.selectedZone)}`)}
+            ${importantInformationHtml(product, "global", "Important information · All regions")}
           </div>
         `;
         if (!isDraft) bindVerifiedCheckbox(els.productEditor, () => {
@@ -2765,6 +2747,7 @@
           const targetZone = ensureProductZone(id, state.selectedZone);
           if (name === "spare_parts") return targetZone.spare_parts;
           if (name === "paid") return targetZone.rma.paid;
+          if (name === "exchange") return targetZone.exchange;
           return targetZone.rma;
         }, () => {
           if (!isDraft) markDirty();
@@ -2777,13 +2760,16 @@
           const value = input.dataset.productField === "exchange.comment"
             ? input.value
             : input.type === "number" && text(input.value) !== "" ? Number(input.value) : input.value || null;
-          setPath(ensureProductZone(id, state.selectedZone), input.dataset.productField, value);
+          const targetZone = ensureProductZone(id, state.selectedZone);
+          if (input.dataset.productField === "exchange.destination") targetZone.exchange.status = "yes";
+          setPath(targetZone, input.dataset.productField, value);
           if (!isDraft) markDirty();
           renderProductList();
           };
           input.addEventListener("input", updateProductField);
           input.addEventListener("change", updateProductField);
         });
+        bindImportantInformation(els.productEditor, (scope) => scope === "global" ? ensureProduct(id) : ensureProductZone(id, state.selectedZone), () => { if (!isDraft) markDirty(); }, renderProductEditor);
         const regionalProductNote = els.productEditor.querySelector("[data-product-regional-note]");
         if (regionalProductNote) bindRichTextEditor(regionalProductNote, (value) => {
           ensureProductZone(id, state.selectedZone).note = value;

@@ -21,14 +21,18 @@ function audit(db) {
     else if (value === 'both' && key === 'exchange') add('warning', 'legacy-both', at, value);
     else if (!allowed.includes(value)) add('error', 'invalid-status', at, value);
   };
+  const checkImportant = (record, at) => {
+    const info = record?.temporary_comment;
+    if (info?.enabled && (!info.comment?.trim() || !info.sections?.length)) add('warning', 'empty-temporary-comment', `${at}.temporary_comment`);
+    for (const section of info?.sections || []) if (!['rma', 'spare_parts', 'paid_rma', 'exchange'].includes(section)) add('error', 'invalid-temporary-section', `${at}.temporary_comment.sections`, section);
+  };
   const reference = (scope, id, at) => { if (id && !ids[scope]?.[id]) add('error', 'missing-reference', at, id); };
   for (const [id, country] of Object.entries(countries)) {
     reference('countries', id, `countries.${id}`);
     if (!ZONES.includes(country.ga_zone)) add('error', 'invalid-zone', `countries.${id}.ga_zone`, country.ga_zone);
     for (const service of ['rma', 'spare_parts']) checkStatus(country[service]?.status, ['yes', 'no', 'temp'], `countries.${id}.${service}.status`);
-    const temp = country.temporary_comment;
-    if (temp?.enabled && (!temp.comment?.trim() || !temp.sections?.length)) add('warning', 'empty-temporary-comment', `countries.${id}.temporary_comment`);
-    for (const section of temp?.sections || []) if (!['rma', 'spare_parts', 'paid_rma', 'exchange'].includes(section)) add('error', 'invalid-temporary-section', `countries.${id}.temporary_comment.sections`, section);
+    for (const service of ['paid_rma', 'exchange']) if (country[service]) checkStatus(country[service].status, ['yes', 'no', 'temp'], `countries.${id}.${service}.status`);
+    checkImportant(country, `countries.${id}`);
   }
   for (const id of Object.keys(ids.countries || {})) if (!countries[id]) add('warning', 'missing-country-record', `countries.${id}`);
   for (const id of Object.keys(ids.products || {})) {
@@ -38,11 +42,13 @@ function audit(db) {
   }
   for (const [id, product] of Object.entries(products)) {
     reference('products', id, `products.${id}`);
+    checkImportant(product, `products.${id}`);
     for (const [zone, rule] of Object.entries(product.zones || {})) {
       const at = `products.${id}.zones.${zone}`;
+      checkImportant(rule, at);
       if (!ZONES.includes(zone)) add('error', 'invalid-zone', at);
       for (const service of ['rma', 'spare_parts']) checkStatus(rule[service]?.status, ['yes', 'no', 'temp'], `${at}.${service}.status`);
-      checkStatus(rule.exchange?.status, ['retailer', 'us', 'no', 'temp'], `${at}.exchange.status`);
+      checkStatus(rule.exchange?.status, ['yes', 'retailer', 'us', 'no', 'temp'], `${at}.exchange.status`);
       const paid = rule.rma?.paid;
       if (paid?.status) checkStatus(paid.status, ['yes', 'no', 'temp'], `${at}.rma.paid.status`);
       reference('locations', rule.rma?.location, `${at}.rma.location`);

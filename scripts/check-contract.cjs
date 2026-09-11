@@ -6,7 +6,7 @@ const source = fs.readFileSync(require.resolve('../src/renderer/index.html'), 'u
 new vm.Script(source.match(/<script>([\s\S]*?)<\/script>/)[1]);
 const locations = { L001: { name: 'First' }, L005: { name: 'CHECK HERE' }, L006: { name: 'Carentoir' } };
 const context = vm.createContext({ text: value => String(value || '').trim(), normalize: value => String(value || '').toLowerCase(), esc: value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'), label: value => value === "check_retailer" ? "Check with retailer" : String(value), ids: () => locations, feeToText: value => value == null ? '' : String(value) });
-for (const name of ['resolveLocationId', 'locationOptions', 'paidDisplayStatus', 'serviceToggleHtml', 'warrantyOptions']) {
+for (const name of ['resolveLocationId', 'locationOptions', 'paidDisplayStatus', 'serviceToggleHtml', 'warrantyOptions', 'defaultZone', 'defaultCountryRecord', 'zoneForDisplay', 'exchangeDisplayStatus']) {
   const start = source.indexOf(`      function ${name}(`);
   const end = source.indexOf('\n      }', start) + 8;
   vm.runInContext(source.slice(start, end), context);
@@ -18,7 +18,7 @@ assert.match(context.locationOptions('L999'), /value="L999" selected/);
 assert.equal(context.paidDisplayStatus({ status: 'temp', price: 25 }), 'temp');
 assert.equal(context.paidDisplayStatus({ status: 'no', price: 25 }), 'no');
 assert.equal(context.paidDisplayStatus({ price: 25 }), 'yes');
-assert.match(context.serviceToggleHtml('rma', 'temp'), />Temporary<\/span>/);
+assert.match(context.serviceToggleHtml('rma', 'temp'), />Temporary \(legacy\)<\/option>/);
 assert.match(context.warrantyOptions('check_retailer'), /value="check_retailer" selected/);
 assert.match(context.warrantyOptions(null), /value="" selected>N\/A/);
 assert.match(context.warrantyOptions(7), /value="7" selected/);
@@ -28,3 +28,14 @@ for (const code of ['invalid-status', 'missing-reference', 'missing-product-reco
 assert.equal(report.counts.missingZones, 11);
 assert.equal(audit(null).issues[0].code, 'invalid-root');
 console.log('DBmanager contract OK: syntax, locations, temporary state, paid inference and invalid-data diagnostics.');
+
+for (const name of ['rma', 'spare_parts', 'paid_rma', 'exchange']) assert.equal(context.defaultCountryRecord()[name].status, 'no');
+const fresh = context.defaultZone();
+for (const service of [fresh.rma, fresh.spare_parts, fresh.rma.paid, fresh.exchange]) assert.equal(service.status, 'no');
+assert.equal(context.paidDisplayStatus(context.zoneForDisplay({ rma: { paid: { price: 25 } } }).rma.paid), 'yes');
+for (const status of ['temp', 'no', 'yes']) assert.equal(context.zoneForDisplay({ rma: { paid: { status } } }).rma.paid.status, status);
+assert.equal(context.exchangeDisplayStatus({ status: 'both' }), 'yes');
+assert.equal(context.exchangeDisplayStatus({ status: 'temp' }), 'temp');
+assert.doesNotMatch(context.serviceToggleHtml('rma', 'yes'), /value="temp"/);
+assert.doesNotMatch(context.serviceToggleHtml('rma', 'no'), /value="temp"/);
+console.log('Editor availability OK: explicit new defaults, legacy Temp preserved, inferred paid availability preserved.');
