@@ -1,13 +1,13 @@
 {
   "name": "cairmdb-manager",
-  "version": "1.2.0",
+  "version": "1.5.0",
   "private": true,
   "author": "Cairm",
   "description": "Gestionnaire de base CairmDB, application de bureau portable.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node scripts/check-contract.cjs && node scripts/check-database-files.cjs",
+    "test": "node scripts/check-contract.cjs && node scripts/check-database-files.cjs && node scripts/check-maintenance.cjs",
     "audit:db": "node scripts/audit-database.cjs",
     "dist:mac": "electron-builder --mac dir",
     "dist:win": "electron-builder --win portable --x64",
@@ -23,6 +23,7 @@
     "files": [
       "src/renderer/index.html",
       "src/renderer/rework.css",
+      "src/renderer/db-maintenance.js",
       "src/icons",
       "main.js",
       "preload.js",

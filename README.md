@@ -58,3 +58,21 @@ Les quatre offres pays et produit utilisent Yes/No. Les anciens Temp restent aff
 Une information importante, enregistrée dans le champ compatible `temporary_comment`, cible une ou plusieurs offres. Elle peut être définie pour le pays, le produit global ou une région produit. Elle s’ajoute aux notes ordinaires et conserve les disponibilités. Dans Cairm 0.39.0+, le cadre de la source devient bleu, ainsi que les offres concernées du produit. Les alertes pays et produit se cumulent. Exchange sépare maintenant disponibilité et destination ; les anciennes destinations sont conservées.
 
 Validation navigateur optionnelle (Playwright et Edge requis) : `NODE_PATH=/tmp/cairm-browser-check/node_modules node scripts/check-editor-browser.cjs`.
+
+## Référentiel unique CairmDB
+
+Le JSON exporté conserve les noms affichés et les identifiants stables dans `ids.countries`, `ids.products` et `ids.bundles`, ainsi que les compositions des bundles. Les données métier WWSxGA restent dans `countries` et `products`, référencées par les mêmes codes internes. Le moteur de calcul reste dans l’extension.
+
+Les SKU acceptent plusieurs valeurs, une par ligne, au niveau global ou pays ; au niveau régional, DBmanager conserve un seul SKU par région. La portée pays prime sur la région, puis le global.
+
+Exporter et publier ce JSON à l’adresse configurée dans Cairm, puis actualiser sa base. Avec Cairm 0.44.0, ces ajouts ne nécessitent plus de modifier un index dans l’extension. La publication n’est pas automatique. Une identité peut être reconnue sans disposer encore de règles métier ; les alias ambigus restent refusés, avec priorité au bundle lorsqu’il partage son nom avec un produit.
+
+## Import de l’index CRM et Sanitize DB (1.4.0)
+
+Dans Cairm 0.45.0, DevMode → « Exporter l’index CRM pour DBManager » télécharge un fichier `cairm-crm-index` version 1. Il contient les noms de pays et produits accessibles au compte CRM, les états et le type CRM lorsqu’il est disponible ; les GUID sont uniquement informatifs. Les exports partiels sont signalés.
+
+Dans DBManager, Home → « Importer l’index CRM » ajoute les identités absentes en comparant les noms et alias avec la normalisation textuelle de Cairm. Les règles métier existantes sont préservées. Les nouvelles entrées n’ont aucune règle, aucun tarif ni SKU inventé. Un bundle explicitement déclaré comme tel par le CRM est créé avec une composition vide à compléter ; un nom ambigu est signalé et non fusionné. Les fiches inactives sont incluses pour préserver les anciens dossiers. Un second import du même fichier ne crée pas de doublon. Les anciennes exports de diagnostic/catalogue complet ne remplacent pas ce nouveau format.
+
+« Sanitize DB » retire les métadonnées d’import inutilisées des identités, les alias techniques/vides/répétés, les destinations `CHECK HERE`, les centres non référencés et les validations orphelines. Le statut Exchange `both` devient `retailer`, de même sens dans Cairm. Les statuts `temp`, les notes, les prix même inactifs, les identités sans règle et les champs non connus restent conservés ; les ambiguïtés sont signalées. Une destination retirée reste manquante : aucun centre de remplacement n’est choisi.
+
+Le scan et le nettoyage restent locaux. Le rapport signale les éléments legacy et les cas à vérifier ; les fiches pays, produits et bundles disposent d’un bouton pour ouvrir directement l’éditeur concerné. « Annuler » restaure la dernière sanitation tant qu’aucune autre modification n’a été faite. Exporter puis publier le JSON pour utiliser les modifications dans le CRM.

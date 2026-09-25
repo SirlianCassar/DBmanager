@@ -18,7 +18,7 @@ assert.match(context.locationOptions('L999'), /value="L999" selected/);
 assert.equal(context.paidDisplayStatus({ status: 'temp', price: 25 }), 'temp');
 assert.equal(context.paidDisplayStatus({ status: 'no', price: 25 }), 'no');
 assert.equal(context.paidDisplayStatus({ price: 25 }), 'yes');
-assert.match(context.serviceToggleHtml('rma', 'temp'), />Temporary \(legacy\)<\/option>/);
+assert.match(context.serviceToggleHtml('rma', 'temp'), /value="temp" selected disabled>Temporary \(legacy\)<\/option>/);
 assert.match(context.warrantyOptions('check_retailer'), /value="check_retailer" selected/);
 assert.match(context.warrantyOptions(null), /value="" selected>N\/A/);
 assert.match(context.warrantyOptions(7), /value="7" selected/);

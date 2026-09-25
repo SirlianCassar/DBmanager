@@ -1189,6 +1189,7 @@
           <button class="tab" id="tab-ga" role="tab" type="button" data-view="ga" aria-controls="view-ga" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM8 7V4h8v3M4 12h16"/></svg>Products</button>
           <button class="tab" id="tab-bundles" role="tab" type="button" data-view="bundles" aria-controls="view-bundles" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>Bundles</button>
           <button class="tab" id="tab-sku" role="tab" type="button" data-view="sku" aria-controls="view-sku" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>SKUs</button>
+          <button class="tab" id="tab-cleanup" role="tab" type="button" data-view="cleanup" aria-controls="view-cleanup" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 5 8-2 8 2v6c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10zM8 12l2.5 2.5L16 9"/></svg>Cleanup</button>
         </nav>
       </div>
     </header>
@@ -1200,6 +1201,20 @@
           <div class="home-summary" id="homeSummary"></div>
           <div class="home-details" id="homeDetails"></div>
           <div class="home-dates" id="homeDates"></div>
+          <section class="editor-section" aria-label="CRM index and database maintenance">
+            <h2>Import CRM index</h2>
+            <input type="file" id="importCrmIndexFile" accept="application/json,.json" hidden>
+            <div class="actions">
+              <button type="button" id="importCrmIndex">Importer l’index CRM</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view cleanup-view" id="view-cleanup" role="tabpanel" aria-labelledby="tab-cleanup">
+        <div class="cleanup-panel panel">
+          <div class="panel-head"><h2>Cleanup</h2><div class="actions"><button type="button" id="scanDb">Scan DB</button><button type="button" id="sanitizeDb">Nettoyer</button><button type="button" id="cancelCleanup">Annuler</button></div></div>
+          <div id="cleanupReport" class="cleanup-report" role="status" aria-live="polite"></div>
         </div>
       </section>
 
@@ -1209,7 +1224,7 @@
             <div class="panel-head">
               <div class="head-row">
                 <div class="list-heading"><h2>CRM countries</h2><select id="countrySort" class="list-sort-select" aria-label="Sort countries"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option></select></div>
-                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="countries" title="Filter countries" aria-label="Filter countries" aria-expanded="false" aria-controls="countryFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="countryFilterPopover" data-list-filter-popover="countries" hidden><label><input type="checkbox" data-list-filter="countries:validated"> Checked</label><label><input type="checkbox" data-list-filter="countries:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="countries:empty"> No data</label></div></div><button type="button" class="icon primary" id="newCountry" title="Create country" aria-label="Create country"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="countries" title="Filter countries" aria-label="Filter countries" aria-expanded="false" aria-controls="countryFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="countryFilterPopover" data-list-filter-popover="countries" hidden><label><input type="checkbox" data-list-filter="countries:validated"> Checked</label><label><input type="checkbox" data-list-filter="countries:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="countries:empty"> No data</label></div></div><button type="button" class="icon primary add-country-button" id="newCountry" title="Ajouter un pays" aria-label="Ajouter un pays"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
               </div>
               <div class="sort-row">
                 <input id="countrySearch" type="search" autocomplete="off" placeholder="Search country, ID, region...">
@@ -1305,6 +1320,7 @@
     </div>
   </dialog>
 
+  <script src="db-maintenance.js"></script>
   <script>
     (() => {
       const STORAGE_KEY = "cairmdb-manager-draft";
@@ -1350,6 +1366,7 @@
         bundleList: $("bundleList"),
         bundleEditor: $("bundleEditor"),
         newBundle: $("newBundle"),
+        cleanupReport: $("cleanupReport"),
         saveBundle: null,
         deleteBundle: null
       };
@@ -1522,22 +1539,22 @@
         const regions = canonical && raw.regions && typeof raw.regions === "object" && !Array.isArray(raw.regions)
           ? raw.regions
           : {};
-        return { global: canonical ? text(raw.global) : "", regions, countries };
+        return { global: canonical ? normalizeSkuValues(raw.global).join("\n") : "", regions, countries };
       }
 
       function productSkuEntries(record) {
         return Object.entries(readProductSkuData(record).countries)
-          .map(([countryId, value]) => [countryId, normalizeSkuValues(value).slice(0, 1)])
+          .map(([countryId, value]) => [countryId, normalizeSkuValues(value)])
           .filter(([countryId, values]) => countryId && values.length);
       }
 
       function productSkuRows(record) {
-        return Object.entries(readProductSkuData(record).countries).map(([countryId, value]) => [countryId, normalizeSkuValues(value).slice(0, 1)]).filter(([countryId]) => countryId);
+        return Object.entries(readProductSkuData(record).countries).map(([countryId, value]) => [countryId, normalizeSkuValues(value)]).filter(([countryId]) => countryId);
       }
 
       function productSkuRegionRows(record) {
         const regions = readProductSkuData(record).regions;
-        return ZONES.map((regionId) => [regionId, normalizeSkuValues(regions[regionId]).slice(0, 1)]);
+        return ZONES.map((regionId) => [regionId, normalizeSkuValues(regions[regionId])]);
       }
 
       function skuProducts() {
@@ -1559,11 +1576,11 @@
         const regions = {};
         Object.entries(data.countries).forEach(([countryId, value]) => {
           const values = normalizeSkuValues(value);
-          if (countryId && values.length) countries[countryId] = values[0];
+          if (countryId && values.length) countries[countryId] = values.join("\n");
         });
         Object.entries(data.regions).forEach(([regionId, value]) => {
           const values = normalizeSkuValues(value);
-          if (ZONES.includes(regionId) && values.length) regions[regionId] = values[0];
+          if (ZONES.includes(regionId) && values.length) regions[regionId] = values.join("\n");
         });
         if (!data.global && !Object.keys(regions).length && !Object.keys(countries).length) {
           delete product.skus;
@@ -1827,7 +1844,7 @@
       }
 
       function serviceToggleHtml(name, status) {
-        if (status === "temp") return `<div class="toggle-row is-temp"><select class="toggle-state temp" data-service-legacy aria-label="${esc(name)} availability"><option value="temp" selected>Temporary (legacy)</option><option value="yes">Yes</option><option value="no">No</option></select></div>`;
+        if (status === "temp") return `<div class="toggle-row is-temp"><select class="toggle-state temp" data-service-legacy aria-label="${esc(name)} availability"><option value="temp" selected disabled>Temporary (legacy)</option><option value="yes">Yes</option><option value="no">No</option></select></div>`;
         const active = status === "yes";
         const stateLabel = status === "temp" ? "Temporary" : active ? "Yes" : status === "no" ? "No" : "N/A";
         return `
@@ -2367,11 +2384,12 @@
         else if (view === "ga") renderGa();
         else if (view === "sku") renderSkuView();
         else if (view === "bundles") renderBundlesView();
+        else if (view === "cleanup") renderCleanup();
       }
 
       function renderCountryList() {
         els.newCountry.disabled = !!state.countryCreationDraft;
-        els.newCountry.title = state.countryCreationDraft ? "Finish or cancel the current country first" : "Create country";
+        els.newCountry.title = state.countryCreationDraft ? "Terminer ou annuler le pays en cours" : "Ajouter un pays";
         const query = normalize(els.countrySearch.value);
         const visible = countries().filter((country) => {
           const matchesQuery = !query || normalize([
@@ -2390,8 +2408,8 @@
         const rows = [...draft, ...visible];
         els.countryList.innerHTML = rows.map(({ id, name, record, dataState, isDraft }) => `
           <button type="button" class="item${id === state.selectedCountryId ? " is-active" : ""}${isDraft ? " is-draft" : checkedClass("countries", id)}${dataState === "empty" ? " has-no-data" : ""}" data-country="${esc(id)}">
-            <span class="title-row"><strong>${esc(name)}</strong><span class="meta">${esc(id)} · ${esc(label(record.ga_zone))}</span></span>
-            <span class="country-statuses">${isDraft ? '<span class="badge temp">Temporary</span>' : `<span class="badge ${esc(record.spare_parts && record.spare_parts.status)}">SP ${esc(label(record.spare_parts && record.spare_parts.status))}</span><span class="badge ${esc(record.rma && record.rma.status)}">RMA ${esc(label(record.rma && record.rma.status))}</span>${richTextHasContent(record.note) ? '<span class="badge note-badge">Note</span>' : ""}`}</span>
+            <span class="title-row"><strong>${esc(name)}</strong><span class="meta">${esc(id)} · ${dataState === "empty" ? "No data" : esc(label(record.ga_zone))}</span></span>
+            <span class="country-statuses">${isDraft ? '<span class="badge temp">Temporary</span>' : dataState === "empty" ? '<span class="badge">No data</span>' : `<span class="badge ${esc(record.spare_parts && record.spare_parts.status)}">SP ${esc(label(record.spare_parts && record.spare_parts.status))}</span><span class="badge ${esc(record.rma && record.rma.status)}">RMA ${esc(label(record.rma && record.rma.status))}</span>${richTextHasContent(record.note) ? '<span class="badge note-badge">Note</span>' : ""}`}</span>
           </button>
         `).join("") || '<div class="empty">No countries</div>';
         els.countryList.querySelectorAll("[data-country]").forEach((button) => button.addEventListener("click", () => {
@@ -2411,6 +2429,12 @@
         state.selectedCountryId = id;
         const isDraft = isCountryCreationDraft(id);
         const sourceRecord = isDraft ? state.countryCreationDraft.record : state.db.countries[id];
+        if (!isDraft && !sourceRecord) {
+          els.countryEditor.innerHTML = `<div class="data-card"><div class="editor-header"><div class="editor-title"><div class="row-title">${esc(countryName(id))}</div><div class="editor-id">${esc(id)}</div></div><button type="button" class="danger" id="deleteCountry">Delete</button></div><div class="editor-section"><p>No country rules yet. This name is recognized by Cairm; service availability and warranty are not defined.</p><button type="button" id="initializeCountryRules">Add country rules</button></div></div>`;
+          $("deleteCountry").addEventListener("click", () => deleteCountry(id));
+          $("initializeCountryRules").addEventListener("click", () => { ensureCountry(id); markDirty(); renderWws(); });
+          return;
+        }
         const record = sourceRecord && typeof sourceRecord === "object" && !Array.isArray(sourceRecord)
           ? sourceRecord
           : defaultCountryRecord();
@@ -2636,7 +2660,7 @@
               <div class="empty">No data for this region</div>
             </div>
           `;
-          if (!isDraft) bindVerifiedCheckbox(els.productEditor, () => {
+        if (!isDraft) bindVerifiedCheckbox(els.productEditor, () => {
             renderProductList();
             renderProductEditor();
           });
@@ -2923,7 +2947,7 @@
                 <div class="section-title">Default</div>
                 <span class="sku-optional">Optional</span>
               </div>
-              <input class="sku-default-input" id="globalSku" aria-label="Default SKU" value="${esc(skuData.global)}" placeholder="Default SKU">
+              <textarea class="sku-default-input" id="globalSku" aria-label="Default SKU" rows="2" placeholder="One SKU per line">${esc(skuData.global)}</textarea>
             </div>
             <div class="editor-section">
               <div class="sku-section-titlebar">
@@ -2934,7 +2958,7 @@
                 ${regionEntries.map(([regionId, values]) => `
                   <div class="sku-region-row${values[0] ? " has-value" : ""}" data-sku-region="${esc(regionId)}">
                     <strong class="region-pill ${esc(regionClass(regionId))}" title="${esc(label(regionId))}">${esc(label(regionId))}</strong>
-                    <input data-sku-region-value aria-label="SKU ${esc(label(regionId))}" value="${esc(values[0] || "")}" placeholder="No SKU">
+                    <textarea class="${esc(regionClass(regionId))}" data-sku-region-value aria-label="SKU ${esc(label(regionId))}" rows="1" placeholder="One SKU">${esc(values[0] || "")}</textarea>
                   </div>
                 `).join("")}
               </div>
@@ -2955,7 +2979,7 @@
                 ${entries.map(([countryId, values]) => `
                   <div class="sku-row sku-country-row" data-sku-country="${esc(countryId)}">
                     <select data-sku-country-id aria-label="Country">${skuCountryOptions(countryId, usedCountryIds)}</select>
-                    <input data-sku-values aria-label="SKU for ${esc(countryName(countryId))}" value="${esc(values[0] || "")}" placeholder="Country SKU">
+                    <textarea data-sku-values aria-label="SKU for ${esc(countryName(countryId))}" rows="2" placeholder="One SKU per line">${esc(values.join("\n"))}</textarea>
                     <button
                       type="button"
                       class="danger icon sku-remove"
@@ -3010,7 +3034,7 @@
             const skus = ensureProductSkus(id);
             const oldCountryId = row.dataset.skuCountry;
             const nextCountryId = countryInput.value;
-            const mergedValue = normalizeSkuValues([...(normalizeSkuValues(skus.countries[oldCountryId])), ...(normalizeSkuValues(skus.countries[nextCountryId]))])[0] || "";
+            const mergedValue = normalizeSkuValues([...(normalizeSkuValues(skus.countries[oldCountryId])), ...(normalizeSkuValues(skus.countries[nextCountryId]))]).join("\n");
             delete skus.countries[oldCountryId];
             skus.countries[nextCountryId] = mergedValue;
             markDirty();
@@ -3018,7 +3042,7 @@
           });
           valuesInput.addEventListener("input", () => {
             const skus = ensureProductSkus(id);
-            const value = normalizeSkuValues(valuesInput.value)[0] || "";
+            const value = normalizeSkuValues(valuesInput.value).join("\n");
             if (value) skus.countries[row.dataset.skuCountry] = value;
             else delete skus.countries[row.dataset.skuCountry];
             cleanProductSkus(state.db.products[id]);
@@ -3180,7 +3204,7 @@
         if (!validateEntityName("bundles", id, name, "bundleName", "bundleNameError")) return;
         state.db.ids.bundles ||= {};
         const previous = state.db.ids.bundles[id] || {};
-        state.db.ids.bundles[id] = { ...previous, name, products: [...(draft.products || [])], aliases: [name], _source: { file: "cairmdb-manager" } };
+        state.db.ids.bundles[id] = { ...previous, name, products: [...(draft.products || [])], aliases: Array.from(new Set([...(Array.isArray(previous.aliases) ? previous.aliases : []), name])), _source: { file: "cairmdb-manager" } };
         state.selectedBundleId = id;
         if (state.bundleCreationDraft && state.bundleCreationDraft.id === id) state.bundleCreationDraft = null;
         state.bundleEditorDraft = { id, name, search: text(draft.search), products: [...(draft.products || [])] };
@@ -3294,6 +3318,7 @@
         renderBundlesView();
       }
 
+
       function buildExportDb() {
         const output = clone(state.db);
         reconcileCountryRecords(output);
@@ -3377,6 +3402,94 @@
         return added;
       }
 
+      let maintenanceUndo = null;
+      let maintenanceAfter = "";
+      let maintenanceReport = null;
+      function cleanupTarget(path) {
+        const match = String(path || "").match(/^(?:ids\.)?(countries|products|bundles)\.([^\.]+)/);
+        if (!match) return null;
+        const [, scope, id] = match;
+        return { scope, id, view: scope === "countries" ? "wws" : scope === "products" ? "ga" : "bundles" };
+      }
+      function renderCleanupReport(report, scanned = false) {
+        if (!report) {
+          els.cleanupReport.innerHTML = "";
+          return;
+        }
+        const entries = [
+          ...report.changes.map((row) => ({ type: "legacy", label: row.path, message: row.reason, target: cleanupTarget(row.path) })),
+          ...report.issues.map((row) => ({ type: "review", label: row.name || row.path, message: row.reason, target: cleanupTarget(row.path) }))
+        ];
+        const title = scanned
+          ? `${entries.length} élément(s) détecté(s) : ${report.changes.length} legacy, ${report.issues.length} à vérifier.`
+          : `${report.changes.length} élément(s) nettoyé(s), ${report.issues.length} à vérifier.`;
+        els.cleanupReport.innerHTML = `<div class="cleanup-summary">${esc(title)}</div>${entries.length ? `<div class="cleanup-items">${entries.map((entry) => `<article class="cleanup-item ${entry.type === "review" ? "is-review" : "is-legacy"}"><strong>${esc(entry.label)}</strong><span>${esc(entry.message)}</span>${entry.target ? `<button type="button" class="cleanup-open" data-cleanup-target="${esc(entry.target.scope)}" data-cleanup-id="${esc(entry.target.id)}" data-cleanup-view="${esc(entry.target.view)}">Ouvrir dans ${esc(entry.target.view === "wws" ? "Countries" : entry.target.view === "ga" ? "Products" : "Bundles")}</button>` : ""}</article>`).join("")}</div>` : '<div class="empty">Aucun élément legacy détecté.</div>'}`;
+        els.cleanupReport.querySelectorAll("[data-cleanup-target]").forEach((button) => button.addEventListener("click", () => {
+          const scope = button.dataset.cleanupTarget;
+          const id = button.dataset.cleanupId;
+          if (!ids(scope)[id]) return;
+          if (scope === "countries") state.selectedCountryId = id;
+          else if (scope === "products") state.selectedProductId = id;
+          else if (scope === "bundles") state.selectedBundleId = id;
+          setView(button.dataset.cleanupView);
+        }));
+      }
+      function renderCleanup() {
+        renderCleanupReport(maintenanceReport, false);
+      }
+      function applyMaintenance(result) {
+        maintenanceReport = result.report;
+        const changed = JSON.stringify(state.db) !== JSON.stringify(result.db);
+        if (changed) {
+          maintenanceUndo = clone(state.db);
+          state.db = result.db;
+          reconcileSelections();
+          markDirty();
+          renderAll();
+          maintenanceAfter = JSON.stringify(state.db);
+        }
+        if (result.report.operation === "sanitize-db") renderCleanupReport(result.report);
+      }
+      $("importCrmIndex").addEventListener("click", () => { if (state.db) $("importCrmIndexFile").click(); });
+      $("importCrmIndexFile").addEventListener("change", async event => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file || !state.db) return;
+        try {
+          if (state.countryCreationDraft || state.productCreationDraft || state.bundleCreationDraft || bundleEditorHasChanges()) throw new Error("Save or cancel the current creation / bundle edit first.");
+          applyMaintenance(CairmDbMaintenance.importIndex(state.db, JSON.parse(await file.text())));
+        } catch (error) { els.status.textContent = `Import error: ${error.message}`; }
+      });
+      $("sanitizeDb").addEventListener("click", () => {
+        if (!state.db) return;
+        try {
+          if (state.countryCreationDraft || state.productCreationDraft || state.bundleCreationDraft || bundleEditorHasChanges()) throw new Error("Save or cancel the current creation / bundle edit first.");
+          applyMaintenance(CairmDbMaintenance.sanitize(state.db));
+        } catch (error) { els.cleanupReport.innerHTML = `<article class="cleanup-item is-review"><strong>Nettoyage impossible</strong><span>${esc(error.message)}</span></article>`; }
+      });
+      $("scanDb").addEventListener("click", () => {
+        if (!state.db) return;
+        try {
+          maintenanceReport = CairmDbMaintenance.sanitize(state.db).report;
+          renderCleanupReport(maintenanceReport, true);
+        } catch (error) {
+          els.cleanupReport.innerHTML = `<article class="cleanup-item is-review"><strong>Scan impossible</strong><span>${esc(error.message)}</span></article>`;
+        }
+      });
+      $("cancelCleanup").addEventListener("click", () => {
+        if (maintenanceUndo && JSON.stringify(state.db) === maintenanceAfter && !state.countryCreationDraft && !state.productCreationDraft && !state.bundleCreationDraft && !bundleEditorHasChanges()) {
+          state.db = maintenanceUndo;
+          maintenanceUndo = null;
+          reconcileSelections();
+          markDirty();
+          renderAll();
+          els.cleanupReport.innerHTML = '<div class="cleanup-summary">Dernière opération annulée.</div>';
+          return;
+        }
+        maintenanceReport = null;
+        els.cleanupReport.innerHTML = "";
+      });
+
       async function exportDbFile() {
         if (!state.db) return;
         if (els.downloadDb.disabled) return;
@@ -3440,6 +3553,9 @@
         if (!db || typeof db !== "object" || Array.isArray(db)) {
           throw new Error("The JSON root must be an object");
         }
+        maintenanceUndo = null;
+        maintenanceReport = null;
+        els.cleanupReport.innerHTML = "";
         state.db = db;
         const databaseNormalized = normalizeDatabase(state.db);
         const countriesRepaired = reconcileCountryRecords(state.db);
@@ -3465,7 +3581,6 @@
 
       async function loadDesktopFile() {
         if (els.importButton.disabled) return;
-        if (!confirmPendingWork("and open another database", "All pending work will be discarded.")) return;
         els.importButton.disabled = true;
         try {
           const result = await window.cairmDesktop.openDatabase();
