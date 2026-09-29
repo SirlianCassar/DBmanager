@@ -75,4 +75,34 @@ Dans DBManager, Home → « Importer l’index CRM » ajoute les identités abse
 
 « Sanitize DB » retire les métadonnées d’import inutilisées des identités, les alias techniques/vides/répétés, les destinations `CHECK HERE`, les centres non référencés et les validations orphelines. Le statut Exchange `both` devient `retailer`, de même sens dans Cairm. Les statuts `temp`, les notes, les prix même inactifs, les identités sans règle et les champs non connus restent conservés ; les ambiguïtés sont signalées. Une destination retirée reste manquante : aucun centre de remplacement n’est choisi.
 
+Le bouton « Cleanup » du scan global effectue uniquement les corrections syntaxiques et legacy dont le résultat est connu. Il ne complète aucune disponibilité à No, ne crée aucune région et ne renseigne aucune donnée métier manquante. Les statuts inconnus et les anciennes valeurs Temp nécessitent une revue manuelle.
+
 Le scan et le nettoyage restent locaux. Le rapport signale les éléments legacy et les cas à vérifier ; les fiches pays, produits et bundles disposent d’un bouton pour ouvrir directement l’éditeur concerné. « Annuler » restaure la dernière sanitation tant qu’aucune autre modification n’a été faite. Exporter puis publier le JSON pour utiliser les modifications dans le CRM.
+
+## Scan global et tableau de diagnostic (1.7.1)
+
+« Scan DB » exécute tous les diagnostics dans un seul contrôle : intégrité des fiches et références, noms/alias et bundles, champs incomplets, syntaxe/legacy et rendu N/A du moteur Cairm 0.48.0. Le scan ne modifie aucune donnée. Le calcul s'effectue dans un Worker et ses résultats sont invalidés si la base change.
+
+Le tableau est trié par nom de produit puis par champ, suivi des pays, bundles, centres et anomalies générales. Chaque champ possède une seule ligne pouvant porter plusieurs catégories :
+
+- **No data** : produit sans règle régionale GA renseignée. Une identité, un SKU, une note globale ou un squelette de régions vide ne suffisent pas.
+- **Partial data** : champs/régions/règles absents ou informations métier à compléter dans les autres fiches.
+- **Not Resolved** : noms ambigus, identités et références introuvables ou compositions non résolues par Cairm.
+- **N/A** : cases effectivement rendues N/A après les restrictions pays et les messages importants. Les produits No data sont exclus, également lorsqu'ils apparaissent comme composants d'un bundle. Les garanties pays restent prises en compte dans les autres combinaisons.
+- **Syntaxe** : formats et valeurs invalides, incohérences structurelles et champs legacy. Les erreurs corrigeables automatiquement portent la mention « Corrigeable par Cleanup ».
+
+Les boutons activent/désactivent les filtres indépendamment : les filtres actifs se cumulent (union), sans dupliquer les lignes communes. Tous sont actifs au départ ; tous désactivés, aucun résultat ne s'affiche. Les compteurs portent sur les champs du rapport complet, pas sur les seules lignes visibles. La recherche porte sur la fiche, l'ID, le pays, la région, le champ et le diagnostic. Le tableau est paginé par 50 lignes ; l'export JSON conserve l'intégralité des diagnostics et des occurrences pays × produit/bundle, quels que soient les filtres ou la page.
+
+« Ouvrir le champ » ouvre la fiche, sélectionne la bonne région et entoure le contrôle concerné en orange. La fiche produit, pays, bundle ou SKU est aussi sélectionnée dans sa liste et défilée au centre de la zone visible. Les métadonnées, références orphelines et champs sans éditeur dédié sont présentés dans une fiche de détail, avec la valeur encadrée et le contenu de la fiche complète. La navigation et les modifications retirent l'ancien encadrement.
+
+Les lignes Not Resolved proposent des étapes adaptées : comparer les fiches concurrentes, corriger les alias ou références dans CairmDB, restaurer une identité ou vérifier les composants du bundle. Les liens de comparaison ouvrent les fiches concernées. Ces suggestions ne modifient aucune donnée et ne demandent aucune modification du CRM ; elles ne choisissent pas arbitrairement entre deux produits ambigus.
+
+Le bouton « Cleanup » apparaît en présence d'éléments Syntaxe et indique le nombre de corrections automatiques possibles. Il traite toute la base, indépendamment des filtres, puis relance le scan global. Les erreurs restantes demeurent visibles pour correction manuelle ; si aucune réparation automatique n'est disponible, le bouton est désactivé. « Annuler » permet de restaurer la base avant le dernier nettoyage tant qu'aucune autre modification n'a été faite. L'ouverture et l'export conservent les références cassées et les fiches orphelines pour qu'elles restent diagnosticables.
+
+Le périmètre est la base chargée, sans accès au CRM ni à la base distante. Les noms CRM absents du référentiel, les champs du dossier et les erreurs réseau ne sont pas simulés. Importer un index CRM complet aide à couvrir les identités absentes. Un rapport sans N/A ne garantit pas la justesse métier des valeurs saisies. Une erreur d'exécution est signalée comme scan incomplet, jamais comme absence de problème.
+
+Le moteur embarqué est généré depuis le dépôt frère Cairm : `npm run sync:cairm`. `npm test` contrôle sa synchronisation et les règles de diagnostic. Les validations navigateur, avec Playwright et Edge installés, sont `NODE_PATH=/tmp/cairm-browser-check/node_modules node scripts/check-editor-browser.cjs` et `NODE_PATH=/tmp/cairm-browser-check/node_modules node scripts/check-global-scan-browser.cjs`.
+
+La base locale fournie a fusionné P535 dans P374 : alias conservés, SKU 5076299 et 5076771 conservés, composants des bundles B062 et B064 redirigés, validations des fiches fusionnées réinitialisées. Un ancien brouillon ou un JSON déjà exporté reste indépendant : ouvrir la base corrigée pour utiliser la fusion. La base distante de Cairm n'est pas publiée automatiquement.
+
+La validation de navigation `NODE_PATH=/tmp/cairm-browser-check/node_modules node scripts/check-diagnostic-navigation-browser.cjs` vérifie les quatre listes longues, leur sélection/défilement, les cadres orange et les suggestions sans modification du CRM.

@@ -1126,19 +1126,17 @@
     .view.home-view { display: none; place-items: center; overflow: auto; }
     .view.home-view.is-active { display: grid; }
     .home-card { display: grid; width: min(100%, 900px); gap: 18px; padding: 26px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
-    .home-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-    .home-stat { padding: 13px; border: 1px solid #303b49; border-radius: 7px; background: #171d25; }
-    .home-stat strong { display: block; color: var(--text); font-size: 24px; font-weight: 650; line-height: 1; }
-    .home-stat span { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; }
-    .home-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-    .home-summary > div { padding: 11px 12px; border: 1px solid #2d3744; border-radius: 7px; background: #141a21; }
-    .home-summary strong { display: block; color: var(--text); font-size: 15px; }
-    .home-summary span { color: var(--muted); font-size: 11px; }
     .home-details { display: grid; gap: 8px; }
-    .home-detail { display: grid; grid-template-columns: minmax(150px, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #303b49; border-radius: 7px; background: #171d25; }
-    .home-detail strong { font-size: 13px; font-weight: 650; }
+    .home-detail { display: grid; grid-template-columns: minmax(130px, 1.4fr) repeat(4, minmax(78px, 1fr)); align-items: stretch; gap: 10px; padding: 12px 14px; border: 1px solid #303b49; border-radius: 7px; background: #171d25; }
+    .home-detail strong { font-size: 13px; font-weight: 650; align-self: center; }
     .home-detail span { color: var(--muted); font-size: 11px; white-space: nowrap; }
-    .home-detail .attention { color: #f1ca7e; }
+    .home-detail.is-head { padding: 0 14px; border: 0; background: transparent; }
+    .home-cell { display: grid; gap: 2px; align-content: center; padding: 5px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); text-align: left; }
+    .home-cell strong { font-size: 17px; font-weight: 650; line-height: 1; }
+    .home-cell span { white-space: normal; }
+    .home-cell.attention:not(:disabled) strong { color: #f1ca7e; }
+    .home-cell.is-void strong { color: var(--muted); }
+    .home-cell:disabled { opacity: .45; }
     .home-dates { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 2px; color: var(--muted); font-size: 11px; }
     .home-dates strong { color: #aebdce; font-weight: 650; }
     .settings-modal { width: min(440px, calc(100vw - 32px)); padding: 0; border: 1px solid #3a4656; border-radius: 10px; background: #171d25; color: var(--text); box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
@@ -1161,8 +1159,8 @@
       .service-grid, .service-grid.three, .form-grid, .grid-2 { grid-template-columns: 1fr; }
       .product-form-layout, .paid-rma-fields { grid-template-columns: 1fr; }
       .bundle-details-grid { grid-template-columns: 1fr; }
-      .home-stats, .home-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .home-detail { grid-template-columns: 1fr; gap: 5px; }
+      .home-detail { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+      .home-detail.is-head { display: none; }
     }
   </style>
   <link rel="icon" type="image/png" href="../icons/app-icon.png">
@@ -1197,8 +1195,6 @@
     <main>
       <section class="view is-active home-view" id="view-home" role="tabpanel" aria-labelledby="tab-home">
         <div class="home-card">
-          <div class="home-stats" id="homeStats"></div>
-          <div class="home-summary" id="homeSummary"></div>
           <div class="home-details" id="homeDetails"></div>
           <div class="home-dates" id="homeDates"></div>
           <section class="editor-section" aria-label="CRM index and database maintenance">
@@ -1213,7 +1209,12 @@
 
       <section class="view cleanup-view" id="view-cleanup" role="tabpanel" aria-labelledby="tab-cleanup">
         <div class="cleanup-panel panel">
-          <div class="panel-head"><h2>Cleanup</h2><div class="actions"><button type="button" id="scanDb">Scan DB</button><button type="button" id="sanitizeDb">Nettoyer</button><button type="button" id="cancelCleanup">Annuler</button></div></div>
+          <div class="panel-head"><h2>Cleanup</h2><div class="actions"><button type="button" id="scanDb">Scan DB</button><button type="button" id="sanitizeDb" hidden>Cleanup</button><button type="button" id="cancelCleanup">Annuler</button></div></div>
+          <p class="audit-help">Scan global de la base chargée : données manquantes, identification Cairm, rendu N/A et syntaxe. Les produits sans règles GA sont classés No data et exclus des N/A. Activez plusieurs filtres pour réunir leurs résultats.</p>
+          <div id="auditStatus" role="status" aria-live="polite"></div>
+          <div id="auditFilters" class="audit-filters" role="group" aria-label="Filtres du diagnostic" hidden></div>
+          <div id="auditControls" class="audit-controls" hidden><input id="auditSearch" type="search" placeholder="Filtrer par nom, ID, pays, région ou champ" aria-label="Filtrer les résultats"><button id="exportAudit" type="button">Exporter le rapport complet</button><button id="auditPrevious" type="button">Précédent</button><span id="auditPage"></span><button id="auditNext" type="button">Suivant</button></div>
+          <div id="auditReport" class="audit-table-wrap"></div>
           <div id="cleanupReport" class="cleanup-report" role="status" aria-live="polite"></div>
         </div>
       </section>
@@ -1224,7 +1225,7 @@
             <div class="panel-head">
               <div class="head-row">
                 <div class="list-heading"><h2>CRM countries</h2><select id="countrySort" class="list-sort-select" aria-label="Sort countries"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option></select></div>
-                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="countries" title="Filter countries" aria-label="Filter countries" aria-expanded="false" aria-controls="countryFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="countryFilterPopover" data-list-filter-popover="countries" hidden><label><input type="checkbox" data-list-filter="countries:validated"> Checked</label><label><input type="checkbox" data-list-filter="countries:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="countries:empty"> No data</label></div></div><button type="button" class="icon primary add-country-button" id="newCountry" title="Ajouter un pays" aria-label="Ajouter un pays"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="countries" title="Filter countries" aria-label="Filter countries" aria-expanded="false" aria-controls="countryFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="countryFilterPopover" data-list-filter-popover="countries" hidden><label><input type="checkbox" data-list-filter="countries:validated"> Checked</label><label><input type="checkbox" data-list-filter="countries:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="countries:empty"> No data</label><label><input type="checkbox" data-list-filter="countries:incomplete"> Missing values</label></div></div><button type="button" class="icon primary add-country-button" id="newCountry" title="Ajouter un pays" aria-label="Ajouter un pays"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
               </div>
               <div class="sort-row">
                 <input id="countrySearch" type="search" autocomplete="off" placeholder="Search country, ID, region...">
@@ -1245,7 +1246,7 @@
             <div class="panel-head">
               <div class="head-row">
                 <div class="list-heading"><h2>GA products</h2><select id="productSort" class="list-sort-select" aria-label="Sort products"><option value="alpha">Sort: name</option><option value="id">Sort: ID</option><option value="data">Data first</option></select></div>
-                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="products" title="Filter products" aria-label="Filter products" aria-expanded="false" aria-controls="productFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="productFilterPopover" data-list-filter-popover="products" hidden><label><input type="checkbox" data-list-filter="products:validated"> Checked</label><label><input type="checkbox" data-list-filter="products:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="products:empty"> No data</label></div></div><button type="button" class="icon primary" id="newProduct" title="Create product" aria-label="Create product"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+                <div class="actions"><div class="filter-menu"><button type="button" class="icon" data-list-filter-button="products" title="Filter products" aria-label="Filter products" aria-expanded="false" aria-controls="productFilterPopover"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button><div class="filter-popover" id="productFilterPopover" data-list-filter-popover="products" hidden><label><input type="checkbox" data-list-filter="products:validated"> Checked</label><label><input type="checkbox" data-list-filter="products:unvalidated"> Not checked</label><label><input type="checkbox" data-list-filter="products:empty"> No data</label><label><input type="checkbox" data-list-filter="products:incomplete"> Missing values</label></div></div><button type="button" class="icon primary" id="newProduct" title="Create product" aria-label="Create product"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
               </div>
               <div class="sort-row">
                 <input id="productSearch" type="search" autocomplete="off" placeholder="Search product, ID, CRM...">
@@ -1320,15 +1321,27 @@
     </div>
   </dialog>
 
+  <dialog id="auditFieldDialog" aria-labelledby="auditFieldTitle">
+    <div class="audit-field-dialog-head"><h2 id="auditFieldTitle">Fiche concernée</h2><button id="closeAuditField" type="button">Fermer</button></div>
+    <p id="auditFieldReason"></p><code id="auditFieldPath"></code>
+    <div id="auditFieldValue" class="audit-field-focus" tabindex="0"></div>
+    <p>Ce champ n’est pas représenté dans l’éditeur habituel. Sa valeur dans la fiche est présentée ci-dessus.</p>
+    <details><summary>Fiche complète</summary><pre id="auditRecordValue"></pre></details>
+  </dialog>
   <script src="db-maintenance.js"></script>
+  <script src="cairm-runtime.js"></script>
+  <script src="db-audit.js"></script>
   <script>
     (() => {
       const STORAGE_KEY = "cairmdb-manager-draft";
       const ZONES = ["europe", "usa", "canada", "hong_kong_taiwan", "australia", "rest_of_world"];
       const STATUS = ["yes", "no", "temp"];
       const EXCHANGE_STATUS = ["retailer", "us", "temp", "no"];
+      // Wider than the editor choices above: legacy databases also hold "yes" and "both",
+      // which the extension still renders, so they do not count as a missing value.
+      const EXCHANGE_STATUS_KNOWN = [...EXCHANGE_STATUS, "yes", "both"];
       const TEMP_COMMENT_SECTIONS = ["spare_parts", "rma", "paid_rma", "exchange"];
-      const state = { db: null, sourceDb: null, activeView: "home", selectedCountryId: "", selectedProductId: "", selectedSkuProductId: "", selectedBundleId: "", previousCountryId: "", previousProductId: "", previousSkuProductId: "", previousBundleId: "", selectedZone: "europe", countrySort: "alpha", productSort: "alpha", skuProductSort: "alpha", bundleSort: "alpha", countryCreationDraft: null, productCreationDraft: null, bundleCreationDraft: null, bundleEditorDraft: null, listFilters: { countries: { validated: false, unvalidated: false, empty: false }, products: { validated: false, unvalidated: false, empty: false }, skus: { validated: false, unvalidated: false, empty: false }, bundles: { validated: false, unvalidated: false, empty: false } }, dirty: false };
+      const state = { db: null, sourceDb: null, activeView: "home", selectedCountryId: "", selectedProductId: "", selectedSkuProductId: "", selectedBundleId: "", previousCountryId: "", previousProductId: "", previousSkuProductId: "", previousBundleId: "", selectedZone: "europe", countrySort: "alpha", productSort: "alpha", skuProductSort: "alpha", bundleSort: "alpha", countryCreationDraft: null, productCreationDraft: null, bundleCreationDraft: null, bundleEditorDraft: null, listFilters: { countries: { validated: false, unvalidated: false, empty: false, incomplete: false }, products: { validated: false, unvalidated: false, empty: false, incomplete: false }, skus: { validated: false, unvalidated: false, empty: false }, bundles: { validated: false, unvalidated: false, empty: false } }, dirty: false };
       let copyFeedbackTimer = 0;
       let draftSaveTimer = 0;
       const $ = (id) => document.getElementById(id);
@@ -1451,27 +1464,6 @@
         return { ga_zone: "rest_of_world", rma: { status: "no", warranty_duration: "check_retailer" }, spare_parts: { status: "no", warranty_duration: "check_retailer" }, paid_rma: { status: "no" }, exchange: { status: "no" }, note: "" };
       }
 
-      function reconcileCountryRecords(db) {
-        const countryIds = db.ids && db.ids.countries ? db.ids.countries : {};
-        const validIds = new Set(Object.keys(countryIds));
-        let changed = false;
-        db.countries ||= {};
-        Object.keys(db.countries).forEach((id) => {
-          if (validIds.has(id)) return;
-          delete db.countries[id];
-          changed = true;
-        });
-        const checkedCountries = db.checked && db.checked.countries;
-        if (checkedCountries) {
-          Object.keys(checkedCountries).forEach((id) => {
-            if (validIds.has(id)) return;
-            delete checkedCountries[id];
-            changed = true;
-          });
-        }
-        return changed;
-      }
-
       function countries() {
         const rows = Object.entries(ids("countries")).map(([id, meta]) => {
           const sourceRecord = state.db.countries[id];
@@ -1491,10 +1483,24 @@
           : "partial";
       }
 
-      function matchesListFilters(scope, id, { empty = false } = {}) {
+      // A record Cairm can still not decide on: the extension falls back to N/D.
+      // Mirrors the extension, which needs a yes/no/temp status and, for a product,
+      // a zone block matching the country ga_zone.
+      function getProductDataState(record) {
+        if (!hasProductGaData(record)) return "empty";
+        const zones = (record && record.zones) || {};
+        // Exchange has its own vocabulary: an empty status is what the extension shows as N/D.
+        const zoneIsComplete = (zone) => zone && typeof zone === "object" && !Array.isArray(zone)
+          && STATUS.includes(zone.rma && zone.rma.status)
+          && STATUS.includes(zone.spare_parts && zone.spare_parts.status)
+          && EXCHANGE_STATUS_KNOWN.includes(zone.exchange && zone.exchange.status);
+        return ZONES.every((zone) => zoneIsComplete(zones[zone])) ? "complete" : "partial";
+      }
+
+      function matchesListFilters(scope, id, { empty = false, incomplete = false } = {}) {
         const active = Object.entries(state.listFilters[scope] || {}).filter(([, enabled]) => enabled).map(([name]) => name);
         if (!active.length) return true;
-        return active.some((filter) => (filter === "validated" && isChecked(scope, id)) || (filter === "unvalidated" && !isChecked(scope, id)) || (filter === "empty" && empty));
+        return active.some((filter) => (filter === "validated" && isChecked(scope, id)) || (filter === "unvalidated" && !isChecked(scope, id)) || (filter === "empty" && empty) || (filter === "incomplete" && incomplete));
       }
 
       function products() {
@@ -1503,7 +1509,8 @@
           name: text(meta.name) || id,
           crmId: text(meta.crm_id),
           aliases: Array.isArray(meta.aliases) ? meta.aliases.map(text).filter(Boolean) : [],
-          record: hasProductGaData(state.db.products[id]) ? state.db.products[id] : null
+          record: hasProductGaData(state.db.products[id]) ? state.db.products[id] : null,
+          dataState: getProductDataState(state.db.products[id])
         }));
         return sortByMode(rows, state.productSort);
       }
@@ -1595,82 +1602,23 @@
       function normalizeDatabase(db) {
         let changed = false;
         const objectOrEmpty = (owner, key) => {
-          if (!owner[key] || typeof owner[key] !== "object" || Array.isArray(owner[key])) {
-            owner[key] = {};
-          }
+          if (owner[key] == null) { owner[key] = {}; changed = true; }
+          if (typeof owner[key] !== "object" || Array.isArray(owner[key])) throw new Error(`Invalid object: ${key}`);
           return owner[key];
         };
         const databaseIds = objectOrEmpty(db, "ids");
-        ["countries", "products", "bundles"].forEach((scope) => {
+        for (const scope of ["countries", "products", "bundles", "locations"]) {
           const records = objectOrEmpty(databaseIds, scope);
-          Object.keys(records).forEach((id) => {
-            if (!records[id] || typeof records[id] !== "object" || Array.isArray(records[id])) {
-              records[id] = {};
-              changed = true;
-            }
-          });
-        });
-        const countryRecords = objectOrEmpty(db, "countries");
-        const productRecords = objectOrEmpty(db, "products");
+          for (const [id, record] of Object.entries(records)) {
+            if (!record || typeof record !== "object" || Array.isArray(record)) throw new Error(`Invalid identity: ids.${scope}.${id}`);
+          }
+        }
+        objectOrEmpty(db, "countries");
+        objectOrEmpty(db, "products");
         const checked = objectOrEmpty(db, "checked");
-        ["countries", "products", "skus", "bundles"].forEach((scope) => objectOrEmpty(checked, scope));
-
-        const validCountries = new Set(Object.keys(databaseIds.countries));
-        const validProducts = new Set(Object.keys(databaseIds.products));
-        const validBundles = new Set(Object.keys(databaseIds.bundles));
-        Object.keys(countryRecords).forEach((id) => {
-          if (!validCountries.has(id)) {
-            delete countryRecords[id];
-            changed = true;
-          }
-        });
-        Object.keys(productRecords).forEach((id) => {
-          if (!validProducts.has(id)) {
-            delete productRecords[id];
-            changed = true;
-          }
-        });
-
-        const validCheckedIds = { countries: validCountries, products: validProducts, skus: validProducts, bundles: validBundles };
-        Object.entries(validCheckedIds).forEach(([scope, validIds]) => {
-          Object.keys(checked[scope]).forEach((id) => {
-            if (!validIds.has(id)) {
-              delete checked[scope][id];
-              changed = true;
-            }
-          });
-        });
-
-        Object.values(databaseIds.bundles).forEach((bundle) => {
-          const current = Array.isArray(bundle.products) ? bundle.products : [];
-          const products = Array.from(new Set(current.filter((id) => validProducts.has(id))));
-          if (!Array.isArray(bundle.products) || products.length !== current.length || products.some((id, index) => id !== current[index])) {
-            bundle.products = products;
-            changed = true;
-          }
-        });
-
-        Object.values(productRecords).forEach((product) => {
-          if (!product || typeof product !== "object" || Array.isArray(product)) return;
-          const skuData = readProductSkuData(product);
-          Object.keys(skuData.countries).forEach((countryId) => {
-            if (!validCountries.has(countryId)) {
-              delete skuData.countries[countryId];
-              changed = true;
-            }
-          });
-          if (product.skus) cleanProductSkus(product);
-          Object.values(product.zones || {}).forEach((zone) => {
-            const fees = zone && zone.rma && zone.rma.extra_transport_fees;
-            if (!fees || typeof fees !== "object" || Array.isArray(fees)) return;
-            Object.keys(fees).forEach((countryId) => {
-              if (!validCountries.has(countryId)) {
-                delete fees[countryId];
-                changed = true;
-              }
-            });
-          });
-        });
+        for (const scope of ["countries", "products", "skus", "bundles"]) objectOrEmpty(checked, scope);
+        // Broken references and orphan records must remain available to Scan DB.
+        // Opening or exporting a database must never silently delete business data.
         return changed;
       }
 
@@ -1858,9 +1806,9 @@
         `;
       }
 
-      function serviceCardHtml(name, title, status, control = "") {
+      function serviceCardHtml(name, title, status, control = "", missing = false) {
         return `
-          <div class="service-card${control ? " has-control" : ""}" data-service="${esc(name)}">
+          <div class="service-card${control ? " has-control" : ""}" data-service="${esc(name)}"${missingAttr(missing)}>
             <div class="service-head">
               <label>${esc(title)}</label>
               <div class="service-head-actions">
@@ -1870,6 +1818,21 @@
             ${control ? `<div class="service-control">${control}</div>` : ""}
           </div>
         `;
+      }
+
+      // An absent status is drawn as "No" in the editor while the extension shows N/D,
+      // so the gap is invisible here. Ring it while the Missing values filter is on.
+      function highlightMissingFor(scope) {
+        return !!(state.listFilters[scope] && state.listFilters[scope].incomplete);
+      }
+
+      function missingAttr(missing) {
+        return missing ? ' data-missing="1"' : "";
+      }
+
+      function warrantyIsMissing(service) {
+        if (!service) return true;
+        return !(service.warranty_duration === "check_retailer" || [1, 2, 3, 4, 5].includes(Number(service.warranty_duration)));
       }
 
       function bindServiceToggle(root, getTarget, afterChange) {
@@ -1928,6 +1891,9 @@
 
       function markDirty() {
         if (!state.db) return;
+        invalidateAudit();
+        maintenanceReport = null;
+        els.cleanupReport.innerHTML = "";
         state.dirty = true;
         state.db.updatedAt = new Date().toISOString();
         scheduleDraftPersistence();
@@ -2304,53 +2270,51 @@
       }
 
       function renderHome() {
-        const statsBox = $("homeStats");
-        const summaryBox = $("homeSummary");
         const detailsBox = $("homeDetails");
         const datesBox = $("homeDates");
-        if (!statsBox || !summaryBox || !detailsBox || !datesBox) return;
+        if (!detailsBox || !datesBox) return;
         if (!state.db) {
-          statsBox.innerHTML = "";
-          summaryBox.innerHTML = "";
           detailsBox.innerHTML = "";
           datesBox.innerHTML = "";
           return;
         }
-        const scopes = ["countries", "products", "skus", "bundles"];
-        const scopeLabel = { countries: "Countries", products: "Products", skus: "SKU products", bundles: "Bundles" };
         const counts = {
           countries: Object.keys(ids("countries")).length,
           products: Object.keys(ids("products")).length,
           skus: skuProducts().length,
           bundles: Object.keys(ids("bundles")).length
         };
-        statsBox.innerHTML = scopes.map((scope) => `<div class="home-stat"><strong>${counts[scope]}</strong><span>${scopeLabel[scope]}</span></div>`).join("");
-        const total = scopes.reduce((sum, scope) => sum + counts[scope], 0);
         const checkedCount = (scope) => Object.keys((state.db.checked && state.db.checked[scope]) || {}).filter((id) => {
           if (scope === "countries") return Boolean(ids("countries")[id]);
           if (scope === "bundles") return Boolean(ids("bundles")[id]);
           return Boolean(ids("products")[id]);
         }).length;
-        const checked = scopes.reduce((sum, scope) => sum + checkedCount(scope), 0);
         const countryData = countries();
-        const productsWithoutData = products().filter((product) => !product.record).length;
+        const productData = products();
         const skuWithoutData = skuProducts().filter((product) => {
           const sku = readProductSkuData(product.record);
           return !sku.global && !Object.values(sku.regions).some((value) => normalizeSkuValues(value).length) && !productSkuEntries(product.record).length;
         }).length;
         const bundlesWithoutProducts = bundles().filter((bundle) => !bundle.products.length).length;
-        summaryBox.innerHTML = `
-          <div><strong>${checked} / ${total}</strong><span>Checked records</span></div>
-          <div><strong>${Math.max(total - checked, 0)}</strong><span>Not checked</span></div>
-          <div><strong>${countryData.filter((country) => country.dataState === "empty").length + productsWithoutData}</strong><span>Records without data</span></div>
-        `;
-        const details = [
-          ["countries", "Countries", counts.countries - checkedCount("countries"), countryData.filter((country) => country.dataState === "empty").length, "without data"],
-          ["products", "GA products", counts.products - checkedCount("products"), productsWithoutData, "without data"],
-          ["skus", "SKU products", counts.skus - checkedCount("skus"), skuWithoutData, "without SKU data"],
-          ["bundles", "Bundles", counts.bundles - checkedCount("bundles"), bundlesWithoutProducts, "without products"]
+        const byState = (rows, dataState) => rows.filter((row) => row.dataState === dataState).length;
+        // Only countries and products drive a WWSxGA decision, so only they can leave
+        // the extension on N/D. SKUs and bundles show no partial count.
+        const rows = [
+          { scope: "countries", label: "Countries", empty: byState(countryData, "empty"), emptyLabel: "no data", incomplete: byState(countryData, "partial") },
+          { scope: "products", label: "GA products", empty: byState(productData, "empty"), emptyLabel: "no data", incomplete: byState(productData, "partial") },
+          { scope: "skus", label: "SKU products", empty: skuWithoutData, emptyLabel: "no SKU data", incomplete: null },
+          { scope: "bundles", label: "Bundles", empty: bundlesWithoutProducts, emptyLabel: "no products", incomplete: null }
         ];
-        detailsBox.innerHTML = details.map(([scope, labelText, notChecked, missing, missingLabel]) => `<div class="home-detail"><strong>${labelText}</strong><button type="button" class="home-detail-action" data-home-filter="${scope}:unvalidated" ${notChecked ? "" : "disabled"}>${notChecked} not checked</button><button type="button" class="home-detail-action attention" data-home-filter="${scope}:empty" ${missing ? "" : "disabled"}>${missing} ${missingLabel}</button></div>`).join("");
+        const cell = (scope, filter, value, caption, extraClass = "") => value === null
+          ? `<div class="home-cell is-void"><strong>—</strong><span>${caption}</span></div>`
+          : `<button type="button" class="home-cell${extraClass}" data-home-filter="${scope}:${filter}"${value ? "" : " disabled"}><strong>${value}</strong><span>${caption}</span></button>`;
+        detailsBox.innerHTML = `<div class="home-detail is-head"><span>Tab</span><span>Records</span><span>Checked</span><span>No data</span><span>Missing values</span></div>` +
+          rows.map((row) => `<div class="home-detail"><strong>${row.label}</strong>${[
+            cell(row.scope, "", counts[row.scope], "total"),
+            cell(row.scope, "validated", checkedCount(row.scope), "checked"),
+            cell(row.scope, "empty", row.empty, row.emptyLabel, " attention"),
+            cell(row.scope, "incomplete", row.incomplete, "partly filled", " attention")
+          ].join("")}</div>`).join("");
         detailsBox.querySelectorAll("[data-home-filter]").forEach((button) => button.addEventListener("click", () => {
           const [scope, filter] = button.dataset.homeFilter.split(":");
           openHomeFilter(scope, filter);
@@ -2363,17 +2327,21 @@
       }
 
       function openHomeFilter(scope, filter) {
-        clearListContext(scope);
-        if (!Object.prototype.hasOwnProperty.call(state.listFilters[scope] || {}, filter)) return;
-        state.listFilters[scope][filter] = true;
-        const input = els.listFilterInputs.find((item) => item.dataset.listFilter === `${scope}:${filter}`);
-        if (input) input.checked = true;
-        updateFilterButton(scope);
         const view = { countries: "wws", products: "ga", skus: "sku", bundles: "bundles" }[scope];
+        if (!view) return;
+        clearListContext(scope);
+        // An empty filter is the total: open the tab on the full list.
+        if (filter && Object.prototype.hasOwnProperty.call(state.listFilters[scope] || {}, filter)) {
+          state.listFilters[scope][filter] = true;
+          const input = els.listFilterInputs.find((item) => item.dataset.listFilter === `${scope}:${filter}`);
+          if (input) input.checked = true;
+        }
+        updateFilterButton(scope);
         setView(view);
       }
 
       function setView(view) {
+        clearAuditHighlight();
         if (!els.views.some((section) => section.id === `view-${view}`)) return;
         closeFilterPopovers();
         state.activeView = view;
@@ -2400,7 +2368,7 @@
             richTextToPlainText(country.record.note),
             richTextToPlainText(country.record.temporary_comment && country.record.temporary_comment.comment)
           ].join(" ")).includes(query);
-          return matchesQuery && matchesListFilters("countries", country.id, { empty: country.dataState === "empty" });
+          return matchesQuery && matchesListFilters("countries", country.id, { empty: country.dataState === "empty", incomplete: country.dataState === "partial" });
         });
         const draft = state.countryCreationDraft
           ? [{ id: state.countryCreationDraft.id, name: text(state.countryCreationDraft.name) || "New country", record: state.countryCreationDraft.record, dataState: "draft", isDraft: true }]
@@ -2435,18 +2403,15 @@
           $("initializeCountryRules").addEventListener("click", () => { ensureCountry(id); markDirty(); renderWws(); });
           return;
         }
-        const record = sourceRecord && typeof sourceRecord === "object" && !Array.isArray(sourceRecord)
-          ? sourceRecord
-          : defaultCountryRecord();
+        const record = { ...(sourceRecord || {}), rma: { ...(sourceRecord?.rma || {}) }, spare_parts: { ...(sourceRecord?.spare_parts || {}) } };
         const rmaCheckRetailer = record.rma.warranty_duration === "check_retailer";
-        const sparePartsControl = ["yes", "temp"].includes(record.spare_parts.status)
-          ? `<div class="field"><label>Warranty duration</label><select data-country-field="spare_parts.warranty_duration">${warrantyOptions(record.spare_parts.warranty_duration)}</select></div>`
-          : "";
-        const rmaControl = ["yes", "temp"].includes(record.rma.status)
-          ? `<div class="field"><div class="service-head"><label>Warranty duration</label><label class="checkline"><input id="rmaCheckRetailer" type="checkbox" ${rmaCheckRetailer ? "checked" : ""}> Check with retailer</label></div><select id="rmaWarrantyInput" class="${rmaCheckRetailer ? "hidden" : ""}" data-country-field="rma.warranty_duration">${warrantyOptions(record.rma.warranty_duration)}</select></div>`
-          : "";
+        const missingZone = !ZONES.includes(record.ga_zone);
+        const missingSpareStatus = !STATUS.includes(record.spare_parts && record.spare_parts.status);
+        const missingRmaStatus = !STATUS.includes(record.rma && record.rma.status);
+        const sparePartsControl = `<div class="field"${missingAttr(warrantyIsMissing(record.spare_parts))}><label>Warranty duration</label><select data-country-field="spare_parts.warranty_duration">${warrantyOptions(record.spare_parts.warranty_duration)}</select></div>`;
+        const rmaControl = `<div class="field"><div class="service-head"><label>Warranty duration</label><label class="checkline"><input id="rmaCheckRetailer" type="checkbox" ${rmaCheckRetailer ? "checked" : ""}> Check with retailer</label></div><select id="rmaWarrantyInput" class="${rmaCheckRetailer ? "hidden" : ""}"${missingAttr(warrantyIsMissing(record.rma))} data-country-field="rma.warranty_duration">${warrantyOptions(record.rma.warranty_duration)}</select></div>`;
         els.countryEditor.innerHTML = `
-          <div class="data-card country-editor-card">
+          <div class="data-card country-editor-card${highlightMissingFor("countries") ? " highlight-missing" : ""}">
             <div class="editor-header">
               <div class="editor-title">
                 <div class="title-inline">
@@ -2455,7 +2420,7 @@
                   ${isDraft ? '<span class="badge temp">Temporary</span>' : verifiedCheckbox("countries", id)}
                 </div>
                 ${isDraft ? '<div class="name-validation" id="countryNameError" role="alert" hidden></div>' : ""}
-                ${countryZoneTabsHtml(record.ga_zone)}
+                <div class="zone-tabs-wrap"${missingAttr(missingZone)}>${countryZoneTabsHtml(record.ga_zone)}</div>
               </div>
               <div class="actions">
                 ${isDraft ? '<button type="button" class="primary" id="saveCountry">Save country</button><button type="button" id="cancelCountry">Cancel</button>' : '<button type="button" class="danger" id="deleteCountry">Delete</button>'}
@@ -2464,8 +2429,8 @@
             <div class="editor-section">
               <div class="section-title">Availability</div>
               <div class="service-grid">
-                ${serviceCardHtml("spare_parts", "Spare parts", record.spare_parts.status || "no", sparePartsControl)}
-                ${serviceCardHtml("rma", "RMA", record.rma.status || "no", rmaControl)}
+                ${serviceCardHtml("spare_parts", "Spare parts", record.spare_parts.status || "no", sparePartsControl, missingSpareStatus)}
+                ${serviceCardHtml("rma", "RMA", record.rma.status || "no", rmaControl, missingRmaStatus)}
                 ${serviceCardHtml("paid_rma", "Paid RMA", record.paid_rma && record.paid_rma.status || (["no", "temp"].includes(record.rma.status) ? "no" : "yes"))}
                 ${serviceCardHtml("exchange", "Exchange", record.exchange && record.exchange.status || "yes")}
               </div>
@@ -2538,7 +2503,7 @@
         els.newProduct.disabled = !!state.productCreationDraft;
         els.newProduct.title = state.productCreationDraft ? "Finish or cancel the current product first" : "Create product";
         const query = normalize(els.productSearch.value);
-        const visible = products().filter((product) => matchesListFilters("products", product.id, { empty: !product.record }) && (!query || normalize([product.id, product.name, product.crmId, product.aliases.join(" ")].join(" ")).includes(query)));
+        const visible = products().filter((product) => matchesListFilters("products", product.id, { empty: !product.record, incomplete: product.dataState === "partial" }) && (!query || normalize([product.id, product.name, product.crmId, product.aliases.join(" ")].join(" ")).includes(query)));
         const draft = state.productCreationDraft
           ? [{ id: state.productCreationDraft.id, name: text(state.productCreationDraft.name) || "New product", crmId: "", aliases: [], record: state.productCreationDraft.record, isDraft: true }]
           : [];
@@ -2556,8 +2521,9 @@
         }));
       }
 
-      function zoneTabsHtml() {
-        return `<div class="zone-tabs">${ZONES.map((zone) => `<button type="button" class="zone-tab region-pill ${esc(regionClass(zone))}${zone === state.selectedZone ? " is-active" : ""}" data-zone="${esc(zone)}">${esc(label(zone))}</button>`).join("")}</div>`;
+      function zoneTabsHtml(product = null) {
+        // A zone with no block at all is the other way a product reaches N/D.
+        return `<div class="zone-tabs">${ZONES.map((zone) => `<button type="button" class="zone-tab region-pill ${esc(regionClass(zone))}${zone === state.selectedZone ? " is-active" : ""}" data-zone="${esc(zone)}"${missingAttr(!!product && !(product.zones && product.zones[zone]))}>${esc(label(zone))}</button>`).join("")}</div>`;
       }
 
       function countryZoneTabsHtml(selectedZone) {
@@ -2643,7 +2609,7 @@
         const product = isDraft ? state.productCreationDraft.record : hasProductGaData(state.db.products[id]) ? state.db.products[id] : null;
         if (!product || (!isDraft && !product.zones?.[state.selectedZone])) {
           els.productEditor.innerHTML = `
-            <div class="data-card">
+            <div class="data-card${highlightMissingFor("products") ? " highlight-missing" : ""}">
               <div class="editor-header">
                 <div class="editor-title">
                   <div class="title-inline">
@@ -2651,7 +2617,7 @@
                     <div class="editor-id">${esc(id)}</div>
                     ${isDraft ? '<span class="badge temp">Temporary</span>' : verifiedCheckbox("products", id)}
                   </div>
-                  ${zoneTabsHtml()}
+                  ${zoneTabsHtml(product)}
                 </div>
                 <div class="actions">
                   ${isDraft ? '<button type="button" class="primary" id="saveProduct">Save product</button><button type="button" id="cancelProduct">Cancel</button>' : '<button type="button" id="initProductZone">Add data</button><button type="button" class="danger" id="deleteProduct">Delete</button>'}
@@ -2676,6 +2642,10 @@
           return;
         }
         const zone = zoneForDisplay(product.zones && product.zones[state.selectedZone]);
+        const storedZone = (product.zones && product.zones[state.selectedZone]) || null;
+        const missingSpareStatus = !STATUS.includes(storedZone && storedZone.spare_parts && storedZone.spare_parts.status);
+        const missingRmaStatus = !STATUS.includes(storedZone && storedZone.rma && storedZone.rma.status);
+        const missingExchangeStatus = !EXCHANGE_STATUS_KNOWN.includes(storedZone && storedZone.exchange && storedZone.exchange.status);
         const fees = zone.rma.extra_transport_fees || {};
         const usedFeeCountryIds = new Set(Object.keys(fees));
         const canAddFeeCountry = countries().some((country) => !usedFeeCountryIds.has(country.id));
@@ -2689,7 +2659,7 @@
           : "";
         const paidRmaActive = paidStatus === "yes" || paidStatus === "temp";
         els.productEditor.innerHTML = `
-          <div class="data-card product-editor-card">
+          <div class="data-card product-editor-card${highlightMissingFor("products") ? " highlight-missing" : ""}">
             <div class="editor-header">
               <div class="editor-title">
                 <div class="title-inline">
@@ -2698,7 +2668,7 @@
                   ${isDraft ? '<span class="badge temp">Temporary</span>' : verifiedCheckbox("products", id)}
                 </div>
                 ${isDraft ? '<div class="name-validation" id="productNameError" role="alert" hidden></div>' : ""}
-                ${zoneTabsHtml()}
+                ${zoneTabsHtml(product)}
               </div>
               <div class="actions">
                 ${isDraft ? '<button type="button" class="primary" id="saveProduct">Save product</button><button type="button" id="cancelProduct">Cancel</button>' : '<button type="button" class="danger" id="deleteProduct">Delete</button>'}
@@ -2708,9 +2678,9 @@
               <section class="editor-section product-services-section">
                 <div class="section-title">Services configuration</div>
                 <div class="service-grid product-service-stack">
-                  ${serviceCardHtml("spare_parts", "Spare parts", zone.spare_parts.status || "no")}
-                  ${serviceCardHtml("rma", "RMA", rmaStatus, rmaControl)}
-                  ${serviceCardHtml("exchange", "Exchange", exchangeDisplayStatus(zone.exchange), exchangeDisplayStatus(zone.exchange) === "yes" ? `<div class="field"><label>To</label><select data-product-field="exchange.destination">${optionHtml(["retailer", "us"], zone.exchange.destination || (["us", "retailer"].includes(zone.exchange.status) ? zone.exchange.status : "retailer"))}</select></div>` : "")}
+                  ${serviceCardHtml("spare_parts", "Spare parts", zone.spare_parts.status || "no", "", missingSpareStatus)}
+                  ${serviceCardHtml("rma", "RMA", rmaStatus, rmaControl, missingRmaStatus)}
+                  ${serviceCardHtml("exchange", "Exchange", exchangeDisplayStatus(zone.exchange), exchangeDisplayStatus(zone.exchange) === "yes" ? `<div class="field"><label>To</label><select data-product-field="exchange.destination">${optionHtml(["retailer", "us"], zone.exchange.destination || (["us", "retailer"].includes(zone.exchange.status) ? zone.exchange.status : "retailer"))}</select></div>` : "", missingExchangeStatus)}
                   <label class="checkline exchange-comment-toggle"><input type="checkbox" data-exchange-comment-toggle ${zone.exchange && typeof zone.exchange.comment === "string" ? "checked" : ""}> Comment</label>
                 </div>
                 <div class="exchange-comment-panel" ${zone.exchange && typeof zone.exchange.comment === "string" ? "" : "hidden"}>
@@ -3321,8 +3291,7 @@
 
       function buildExportDb() {
         const output = clone(state.db);
-        reconcileCountryRecords(output);
-        Object.values(output.products || {}).forEach(cleanProductSkus);
+        // Preserve unresolved references and legacy values for review in Scan DB.
         output.version = new Date().toISOString().slice(0, 10);
         output.updatedAt = new Date().toISOString();
         return output;
@@ -3404,9 +3373,257 @@
 
       let maintenanceUndo = null;
       let maintenanceAfter = "";
+      let auditWorker = null;
+      let auditReport = null;
+      let auditPage = 0;
+      let auditFilters = new Set(Object.keys(CairmDbAudit.categories));
+      function clearAuditHighlight() {
+        document.querySelectorAll(".audit-field-focus").forEach(node => {
+          if (node.id !== "auditFieldValue") node.classList.remove("audit-field-focus");
+        });
+      }
+      function invalidateAudit(message = "Base modifiée : relancer le scan.") {
+        const hadAudit = auditWorker || auditReport;
+        if (auditWorker) auditWorker.terminate();
+        auditWorker = null;
+        auditReport = null;
+        $("scanDb").disabled = false;
+        $("sanitizeDb").hidden = true;
+        $("auditControls").hidden = true;
+        $("auditFilters").hidden = true;
+        $("auditReport").innerHTML = "";
+        clearAuditHighlight();
+        if (hadAudit) $("auditStatus").textContent = message;
+      }
+      function startAudit() {
+        if (!state.db) return;
+        if (state.countryCreationDraft || state.productCreationDraft || state.bundleCreationDraft || bundleEditorHasChanges()) {
+          $("auditStatus").textContent = "Enregistrer ou annuler la fiche en cours avant le scan.";
+          return;
+        }
+        invalidateAudit();
+        maintenanceReport = null;
+        const snapshot = JSON.stringify(state.db);
+        $("auditStatus").textContent = "Scan global en cours…";
+        $("cleanupReport").innerHTML = "";
+        $("scanDb").disabled = true;
+        let worker;
+        const fail = message => {
+          if (worker && auditWorker !== worker) return;
+          invalidateAudit();
+          $("auditStatus").textContent = `Scan incomplet : ${message}`;
+        };
+        try {
+          worker = new Worker("db-audit-worker.js");
+          auditWorker = worker;
+          worker.onerror = event => fail(event.message || "Erreur du moteur de contrôle");
+          worker.onmessage = ({ data }) => {
+            if (auditWorker !== worker) return;
+            if (data.error) { fail(data.error); return; }
+            if (data.progress) {
+              $("auditStatus").textContent = `Scan global : rendu Cairm ${data.progress.tested.toLocaleString()} / ${data.progress.total.toLocaleString()} combinaisons…`;
+              return;
+            }
+            if (JSON.stringify(state.db) !== snapshot) { invalidateAudit(); return; }
+            worker.terminate();
+            auditWorker = null;
+            $("scanDb").disabled = false;
+            auditReport = data.report;
+            auditPage = 0;
+            renderAudit();
+          };
+          worker.postMessage({ db: JSON.parse(snapshot) });
+        } catch (error) { fail(error.message); }
+      }
+      function auditEntryText(row) {
+        const names = (row.countries || []).map(id => countryName(id));
+        const selections = (row.products || []).map(id => ids("products")[id]?.name || ids("bundles")[id]?.name || id);
+        return [row.target.name, row.target.id, row.path, ...row.reasons, ...(row.suggestions?.steps || []), ...names, ...selections].join(" ");
+      }
+      function renderAudit() {
+        if (!auditReport) return;
+        const all = auditReport.issues;
+        $("auditStatus").textContent = `Scan DB ${auditReport.complete ? "terminé" : "incomplet"} · ${all.length.toLocaleString()} champs à vérifier · ${auditReport.tested.toLocaleString()} combinaisons Cairm · ${auditReport.cells.toLocaleString()} cases N/A (hors No data). Base chargée uniquement, sans connexion au CRM.`;
+        $("auditControls").hidden = false;
+        $("auditFilters").hidden = false;
+        $("sanitizeDb").hidden = !auditReport.counts.syntax;
+        $("sanitizeDb").disabled = !auditReport.syntaxFixes;
+        $("sanitizeDb").textContent = `Cleanup (${auditReport.syntaxFixes})`;
+        $("sanitizeDb").title = auditReport.syntaxFixes ? "Corriger les éléments syntaxiques réparables de toute la base, indépendamment des filtres" : "Les erreurs restantes nécessitent une correction manuelle";
+        $("auditFilters").innerHTML = Object.entries(CairmDbAudit.categories).map(([key, name]) => `<button type="button" data-audit-filter="${key}" aria-pressed="${auditFilters.has(key)}">${esc(name)} <span>${auditReport.counts[key]}</span></button>`).join("");
+        $("auditFilters").querySelectorAll("[data-audit-filter]").forEach(button => button.addEventListener("click", () => {
+          const key = button.dataset.auditFilter;
+          if (auditFilters.has(key)) auditFilters.delete(key); else auditFilters.add(key);
+          auditPage = 0;
+          renderAudit();
+        }));
+        const query = normalize($("auditSearch").value);
+        const rows = all.filter(row => row.categories.some(category => auditFilters.has(category)) && (!query || normalize(auditEntryText(row)).includes(query)));
+        const pages = Math.max(1, Math.ceil(rows.length / 50));
+        auditPage = Math.min(auditPage, pages - 1);
+        $("auditPage").textContent = `${rows.length.toLocaleString()} résultats · ${auditPage + 1} / ${pages}`;
+        $("auditPrevious").disabled = auditPage === 0;
+        $("auditNext").disabled = auditPage >= pages - 1;
+        const shown = rows.slice(auditPage * 50, (auditPage + 1) * 50);
+        const scopeLabels = { products: "Produit", countries: "Pays", bundles: "Bundle", locations: "Centre", database: "Base" };
+        let previous = "";
+        const tableRows = shown.map((row, index) => {
+          const group = `${row.target.scope}:${row.target.id}`;
+          const first = group !== previous;
+          previous = group;
+          const countries = (row.countries || []).map(id => `${countryName(id)} (${id})`).join(", ");
+          const field = describeCleanupPath(row.path).detail || row.target.field || "Fiche entière";
+          return `<tr class="${first ? "audit-group-start" : ""}" data-audit-path="${esc(row.path)}"><th scope="row"><strong>${esc(row.target.name)}</strong><small>${esc(scopeLabels[row.target.scope])} · ${esc(row.target.id)}</small></th><td><div class="audit-tags">${row.categories.map(category => `<span class="audit-tag audit-tag-${category}">${esc(CairmDbAudit.categories[category])}</span>`).join("")}</div></td><td><strong>${esc(field)}</strong><details><summary>Emplacement</summary><code>${esc(row.path)}</code></details></td><td>${row.reasons.map(reason => `<p>${esc(reason)}</p>`).join("")}${row.fixable ? '<span class="audit-fixable">Corrigeable par Cleanup</span>' : ""}${row.suggestions ? `<details class="audit-suggestions" open><summary>Suggestions de correction dans DBmanager</summary><ol>${row.suggestions.steps.map(step => `<li>${esc(step)}</li>`).join("")}</ol><div class="audit-related">${row.suggestions.related.map((related, relatedIndex) => `<button type="button" data-audit-related="${index}" data-related-index="${relatedIndex}">${esc(related.label)}</button>`).join("")}</div></details>` : ""}${countries ? `<details><summary>${row.countries.length} pays · ${row.occurrences.length.toLocaleString()} occurrences</summary><p>${esc(countries)}</p><p>Combinaisons exactes dans le rapport exporté.</p></details>` : ""}</td><td><button type="button" data-audit-open="${index}">Ouvrir le champ</button></td></tr>`;
+        }).join("");
+        $("auditReport").innerHTML = `<table class="audit-table"><caption class="sr-only">Diagnostics regroupés par fiche et triés par produit</caption><thead><tr><th>Fiche</th><th>Diagnostic</th><th>Région / champ</th><th>Éléments trouvés</th><th>Action</th></tr></thead><tbody>${tableRows || `<tr><td colspan="5">${auditFilters.size ? "Aucun résultat pour ces filtres." : "Activez au moins un filtre pour afficher les résultats."}</td></tr>`}</tbody></table>`;
+        $("auditReport").querySelectorAll("[data-audit-open]").forEach(button => button.addEventListener("click", () => openAuditField(shown[Number(button.dataset.auditOpen)])));
+        $("auditReport").querySelectorAll("[data-audit-related]").forEach(button => button.addEventListener("click", () => {
+          const related = shown[Number(button.dataset.auditRelated)].suggestions.related[Number(button.dataset.relatedIndex)];
+          openAuditField({ path: related.path, target: CairmDbAudit.targetFor(state.db, related.path), reasons: [related.label] });
+        }));
+      }
+      function inspectAuditField(row) {
+        const value = CairmDbAudit.valueAt(state.db, row.path);
+        const rootPath = row.path.startsWith("activeBundles.") ? row.path.split(".").slice(0, 2).join(".") : row.path.startsWith("ids.") || row.path.startsWith("checked.") ? row.path.split(".").slice(0, 3).join(".") : row.path.split(".").slice(0, 2).join(".");
+        $("auditFieldTitle").textContent = `${row.target.name} · ${row.target.id}`;
+        $("auditFieldReason").textContent = row.reasons.join(" · ");
+        $("auditFieldPath").textContent = row.path;
+        $("auditFieldValue").textContent = value === undefined ? "Non renseigné" : typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+        $("auditRecordValue").textContent = JSON.stringify(CairmDbAudit.valueAt(state.db, rootPath) ?? null, null, 2);
+        $("auditFieldDialog").showModal();
+        $("auditFieldValue").focus();
+      }
+      function revealAuditSelection(view, id) {
+        const config = { wws: [els.countryList, "data-country"], ga: [els.productList, "data-product"], sku: [els.skuProductList, "data-sku-product"], bundles: [els.bundleList, "data-bundle"] }[view];
+        if (!config) return;
+        const [list, attribute] = config;
+        const selected = list.querySelector(`[${attribute}="${CSS.escape(id)}"]`);
+        if (!selected) return;
+        list.querySelectorAll(`[${attribute}]`).forEach(item => {
+          item.classList.toggle("is-active", item === selected);
+          if (item === selected) item.setAttribute("aria-current", "true");
+          else item.removeAttribute("aria-current");
+        });
+        // Scroll the record list itself, without moving the editor or stealing
+        // keyboard focus from the field highlighted below.
+        const scroller = selected.closest(".stack");
+        if (scroller) {
+          const itemRect = selected.getBoundingClientRect();
+          const listRect = scroller.getBoundingClientRect();
+          scroller.scrollTo({ top: scroller.scrollTop + itemRect.top - listRect.top - (scroller.clientHeight - itemRect.height) / 2, behavior: "instant" });
+        }
+      }
+      function openAuditField(row) {
+        clearAuditHighlight();
+        const { scope, id } = row.target;
+        const native = ["products", "countries", "bundles"].includes(scope) && ids(scope)[id];
+        if (!native) { inspectAuditField(row); return; }
+        const sku = scope === "products" && (row.path.includes(".skus") || row.path.startsWith("checked.skus."));
+        clearListContext(sku ? "skus" : scope);
+        if (scope === "countries") state.selectedCountryId = id;
+        if (scope === "products") state.selectedProductId = id;
+        if (sku) state.selectedSkuProductId = id;
+        if (scope === "bundles") { state.selectedBundleId = id; state.bundleEditorDraft = null; }
+        const zone = row.path.match(/\.zones\.([^.]*)/);
+        if (zone && ZONES.includes(zone[1])) state.selectedZone = zone[1];
+        const view = sku ? "sku" : { products: "ga", countries: "wws", bundles: "bundles" }[scope];
+        setView(view);
+        revealAuditSelection(view, id);
+        if (row.path.startsWith("activeBundles.") || row.path.startsWith("checked.")) { inspectAuditField(row); return; }
+        const root = sku ? els.skuEditor : { products: els.productEditor, countries: els.countryEditor, bundles: els.bundleEditor }[scope];
+        let field = row.target.field;
+        if (zone) field = field.split(".").slice(2).join(".");
+        const find = selector => root.querySelector(selector);
+        const attr = value => CSS.escape(value);
+        let node = null;
+        if (row.path.startsWith("ids.")) {
+          if (field === "name") node = find(scope === "bundles" ? "#bundleName" : ".row-title");
+          if (scope === "bundles" && field === "products") node = find("#selectedProducts");
+        } else if (sku) {
+          const parts = field.split(".");
+          node = parts[1] === "countries" && parts[2] ? find(`[data-sku-country="${attr(parts[2])}"]`) : parts[1] === "regions" && parts[2] ? find(`[data-sku-region="${attr(parts[2])}"]`) : find("#globalSku");
+        } else {
+          const prefix = scope === "products" ? "product" : "country";
+          node = find(`[data-${prefix}-field="${attr(field)}"]`);
+          if (!node && /^(rma|spare_parts|exchange|paid_rma)(\.paid)?(\.status)?$/.test(field)) {
+            const service = field.startsWith("rma.paid") ? "paid" : field.split(".")[0];
+            node = find(`[data-service="${service}"]`);
+          }
+          if (!node && field === "ga_zone") node = find(".zone-tabs-wrap");
+          if (!node && field.startsWith("temporary_comment")) node = find(`[data-important-scope="${scope === "countries" ? "country" : zone ? "region" : "global"}"]`);
+          if (!node && field.startsWith("rma.extra_transport_fees")) node = field.split(".")[2] ? find(`[data-fee-country="${attr(field.split(".")[2])}"]`) : find("#feeList");
+          if (!node && (field === "" || field === "zones" || zone)) node = find("#initProductZone") || find("#initializeCountryRules");
+        }
+        if (!node) { inspectAuditField(row); return; }
+        // A diagnostic may target a valid stored field hidden by an inactive offer.
+        for (let parent = node; parent && parent !== root; parent = parent.parentElement) {
+          if (parent.hidden) parent.hidden = false;
+          if (parent.classList.contains("hidden")) parent.classList.remove("hidden");
+        }
+        node.classList.add("audit-field-focus");
+        if (!node.matches("input,select,textarea,button,[tabindex]")) node.setAttribute("tabindex", "-1");
+        node.scrollIntoView({ block: "center", behavior: "smooth" });
+        node.focus({ preventScroll: true });
+      }
+      $("closeAuditField").addEventListener("click", () => $("auditFieldDialog").close());
+      $("auditSearch").addEventListener("input", () => { auditPage = 0; renderAudit(); });
+      $("auditPrevious").addEventListener("click", () => { auditPage--; renderAudit(); });
+      $("auditNext").addEventListener("click", () => { auditPage++; renderAudit(); });
+      $("exportAudit").addEventListener("click", () => {
+        if (!auditReport) return;
+        const url = URL.createObjectURL(new Blob([JSON.stringify(auditReport, null, 2)], { type: "application/json" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `CairmDB-global-scan-${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+
       let maintenanceReport = null;
+      const CLEANUP_FIELD_LABELS = {
+        rma: "RMA", spare_parts: "Spare parts", exchange: "Exchange", paid: "Paid RMA",
+        status: "status", location: "destination", warranty_duration: "warranty", ga_zone: "GA zone",
+        default_transport_fee: "default shipping fee", extra_transport_fees: "shipping fees",
+        price: "price", note: "note", comment: "comment", aliases: "aliases", skus: "SKUs",
+        temporary_comment: "important information", products: "composition",
+        _source: "import metadata", crm_id: "CRM GUID", crm_ids: "CRM GUIDs"
+      };
+
+      function cleanupRecordName(scope, id) {
+        const directory = scope === "locations" ? ((state.db && state.db.ids && state.db.ids.locations) || {}) : ids(scope);
+        const meta = directory[id];
+        return (meta && text(meta.name)) || id;
+      }
+
+      // Cleanup rows used to show the raw JSON path. Lead with the record the
+      // operator recognises, and keep the path as secondary evidence.
+      function describeCleanupPath(path) {
+        const raw = String(path || "");
+        const parts = raw.split(".");
+        const offset = parts[0] === "ids" || parts[0] === "checked" ? 1 : 0;
+        const scope = ["countries", "products", "bundles", "locations"].includes(parts[offset]) ? parts[offset] : "";
+        const id = scope ? parts[offset + 1] || "" : "";
+        if (!scope || !id) return { title: raw, detail: "", path: raw };
+        const segments = [];
+        const rest = parts.slice(offset + 2);
+        for (let index = 0; index < rest.length; index += 1) {
+          if (rest[index] === "zones" && rest[index + 1]) { segments.push(label(rest[index + 1])); index += 1; continue; }
+          if (/^\d+$/.test(rest[index])) { segments.push(`#${Number(rest[index]) + 1}`); continue; }
+          segments.push(CLEANUP_FIELD_LABELS[rest[index]] || rest[index]);
+        }
+        if (parts[0] === "checked") segments.unshift("verification flag");
+        return { title: `${cleanupRecordName(scope, id)} · ${id}`, detail: segments.join(" › "), path: raw };
+      }
+
+      // Identity collisions must remain visible: they can block Cairm even on complete records.
+      const CLEANUP_HIDDEN_REASONS = [];
+
+      function cleanupVisibleIssues(issues) {
+        return (Array.isArray(issues) ? issues : []).filter((row) => !CLEANUP_HIDDEN_REASONS.includes(row && row.reason));
+      }
+
       function cleanupTarget(path) {
-        const match = String(path || "").match(/^(?:ids\.)?(countries|products|bundles)\.([^\.]+)/);
+        const match = String(path || "").match(/^(?:ids\.|checked\.)?(countries|products|bundles)\.([^\.]+)/);
         if (!match) return null;
         const [, scope, id] = match;
         return { scope, id, view: scope === "countries" ? "wws" : scope === "products" ? "ga" : "bundles" };
@@ -3416,24 +3633,28 @@
           els.cleanupReport.innerHTML = "";
           return;
         }
+        const describe = (row, fallbackName) => {
+          const described = describeCleanupPath(row.path);
+          // Ambiguity issues carry a name instead of a record path.
+          return fallbackName && !described.detail && described.title === described.path
+            ? { title: fallbackName, detail: "", path: row.path || "" }
+            : described;
+        };
+        const issues = cleanupVisibleIssues(report.issues);
         const entries = [
-          ...report.changes.map((row) => ({ type: "legacy", label: row.path, message: row.reason, target: cleanupTarget(row.path) })),
-          ...report.issues.map((row) => ({ type: "review", label: row.name || row.path, message: row.reason, target: cleanupTarget(row.path) }))
+          ...(report.changes || []).map((row) => ({ type: "legacy", ...describe(row), message: row.reason, target: cleanupTarget(row.path) })),
+          ...issues.map((row) => ({ type: "review", ...describe(row, row.name), message: row.reason, target: cleanupTarget(row.path) }))
         ];
         const title = scanned
-          ? `${entries.length} élément(s) détecté(s) : ${report.changes.length} legacy, ${report.issues.length} à vérifier.`
-          : `${report.changes.length} élément(s) nettoyé(s), ${report.issues.length} à vérifier.`;
-        els.cleanupReport.innerHTML = `<div class="cleanup-summary">${esc(title)}</div>${entries.length ? `<div class="cleanup-items">${entries.map((entry) => `<article class="cleanup-item ${entry.type === "review" ? "is-review" : "is-legacy"}"><strong>${esc(entry.label)}</strong><span>${esc(entry.message)}</span>${entry.target ? `<button type="button" class="cleanup-open" data-cleanup-target="${esc(entry.target.scope)}" data-cleanup-id="${esc(entry.target.id)}" data-cleanup-view="${esc(entry.target.view)}">Ouvrir dans ${esc(entry.target.view === "wws" ? "Countries" : entry.target.view === "ga" ? "Products" : "Bundles")}</button>` : ""}</article>`).join("")}</div>` : '<div class="empty">Aucun élément legacy détecté.</div>'}`;
-        els.cleanupReport.querySelectorAll("[data-cleanup-target]").forEach((button) => button.addEventListener("click", () => {
-          const scope = button.dataset.cleanupTarget;
-          const id = button.dataset.cleanupId;
-          if (!ids(scope)[id]) return;
-          if (scope === "countries") state.selectedCountryId = id;
-          else if (scope === "products") state.selectedProductId = id;
-          else if (scope === "bundles") state.selectedBundleId = id;
-          setView(button.dataset.cleanupView);
+          ? `${entries.length} élément(s) détecté(s) : ${(report.changes || []).length} legacy, ${issues.length} à vérifier.`
+          : `${(report.changes || []).length} élément(s) nettoyé(s), ${issues.length} à vérifier.`;
+        els.cleanupReport.innerHTML = `<div class="cleanup-summary">${esc(title)}</div>${entries.length ? `<div class="cleanup-items">${entries.map((entry) => `<article class="cleanup-item ${entry.type === "review" ? "is-review" : "is-legacy"}"><strong>${esc(entry.title)}</strong><span class="cleanup-where">${esc(entry.detail)}</span><span>${esc(entry.message)}</span><code class="cleanup-path">${esc(entry.path === entry.title ? "" : entry.path)}</code>${entry.target ? `<button type="button" class="cleanup-open" data-cleanup-target="${esc(entry.target.scope)}" data-cleanup-id="${esc(entry.target.id)}" data-cleanup-view="${esc(entry.target.view)}">Ouvrir dans ${esc(entry.target.view === "wws" ? "Countries" : entry.target.view === "ga" ? "Products" : "Bundles")}</button>` : ""}</article>`).join("")}</div>` : '<div class="empty">Aucun élément legacy détecté.</div>'}`;
+        els.cleanupReport.querySelectorAll("[data-cleanup-target]").forEach((button, index) => button.addEventListener("click", () => {
+          const entry = entries.filter(row => row.target)[index];
+          openAuditField({ path: entry.path, target: CairmDbAudit.targetFor(state.db, entry.path), reasons: [entry.message] });
         }));
       }
+
       function renderCleanup() {
         renderCleanupReport(maintenanceReport, false);
       }
@@ -3448,6 +3669,7 @@
           renderAll();
           maintenanceAfter = JSON.stringify(state.db);
         }
+        maintenanceReport = result.report;
         if (result.report.operation === "sanitize-db") renderCleanupReport(result.report);
       }
       $("importCrmIndex").addEventListener("click", () => { if (state.db) $("importCrmIndexFile").click(); });
@@ -3464,19 +3686,13 @@
         if (!state.db) return;
         try {
           if (state.countryCreationDraft || state.productCreationDraft || state.bundleCreationDraft || bundleEditorHasChanges()) throw new Error("Save or cancel the current creation / bundle edit first.");
-          applyMaintenance(CairmDbMaintenance.sanitize(state.db));
+          applyMaintenance(CairmDbMaintenance.cleanupSyntax(state.db));
+          startAudit();
         } catch (error) { els.cleanupReport.innerHTML = `<article class="cleanup-item is-review"><strong>Nettoyage impossible</strong><span>${esc(error.message)}</span></article>`; }
       });
-      $("scanDb").addEventListener("click", () => {
-        if (!state.db) return;
-        try {
-          maintenanceReport = CairmDbMaintenance.sanitize(state.db).report;
-          renderCleanupReport(maintenanceReport, true);
-        } catch (error) {
-          els.cleanupReport.innerHTML = `<article class="cleanup-item is-review"><strong>Scan impossible</strong><span>${esc(error.message)}</span></article>`;
-        }
-      });
+      $("scanDb").addEventListener("click", () => startAudit());
       $("cancelCleanup").addEventListener("click", () => {
+        invalidateAudit("Contrôle annulé.");
         if (maintenanceUndo && JSON.stringify(state.db) === maintenanceAfter && !state.countryCreationDraft && !state.productCreationDraft && !state.bundleCreationDraft && !bundleEditorHasChanges()) {
           state.db = maintenanceUndo;
           maintenanceUndo = null;
@@ -3553,13 +3769,12 @@
         if (!db || typeof db !== "object" || Array.isArray(db)) {
           throw new Error("The JSON root must be an object");
         }
+        invalidateAudit();
         maintenanceUndo = null;
         maintenanceReport = null;
         els.cleanupReport.innerHTML = "";
         state.db = db;
-        const databaseNormalized = normalizeDatabase(state.db);
-        const countriesRepaired = reconcileCountryRecords(state.db);
-        const databaseRepaired = databaseNormalized || countriesRepaired;
+        const databaseRepaired = normalizeDatabase(state.db);
         state.countryCreationDraft = null;
         state.productCreationDraft = null;
         state.bundleCreationDraft = null;
@@ -3649,6 +3864,11 @@
         updateFilterButton(scope);
         renderAfterCheckboxChange(input, () => {
           renderFilteredList(scope);
+          // Only this filter changes how the editor is drawn.
+          if (filter === "incomplete") {
+            if (scope === "countries") renderCountryEditor();
+            else if (scope === "products") renderProductEditor();
+          }
           closeFilterPopovers();
         });
       }));

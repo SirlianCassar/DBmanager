@@ -1,17 +1,18 @@
 {
   "name": "cairmdb-manager",
-  "version": "1.5.0",
+  "version": "1.7.1",
   "private": true,
   "author": "Cairm",
   "description": "Gestionnaire de base CairmDB, application de bureau portable.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node scripts/check-contract.cjs && node scripts/check-database-files.cjs && node scripts/check-maintenance.cjs",
+    "test": "node scripts/check-contract.cjs && node scripts/check-database-files.cjs && node scripts/check-maintenance.cjs && node scripts/check-audit.cjs",
     "audit:db": "node scripts/audit-database.cjs",
     "dist:mac": "electron-builder --mac dir",
     "dist:win": "electron-builder --win portable --x64",
-    "dist:linux": "electron-builder --linux AppImage"
+    "dist:linux": "electron-builder --linux AppImage",
+    "sync:cairm": "node scripts/sync-cairm-runtime.cjs"
   },
   "devDependencies": {
     "electron": "^37.2.6",
@@ -28,7 +29,10 @@
       "main.js",
       "preload.js",
       "cairm-full-database.json",
-      "database-files.cjs"
+      "database-files.cjs",
+      "src/renderer/db-audit.js",
+      "src/renderer/db-audit-worker.js",
+      "src/renderer/cairm-runtime.js"
     ],
     "mac": {
       "target": [
