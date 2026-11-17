@@ -66,7 +66,7 @@ assert.equal(JSON.stringify(orphan), before, 'Both scans are read-only');
 assert(integrity({ ids: {}, countries: { X: null }, products: { X: null }, activeBundles: [null] }).length > 0);
 
 // Use the actual HTML renderer as an independent oracle for warranty N/A under No.
-const source = fs.readFileSync(require.resolve('../../Cairm/extensions/cairm/content.js'), 'utf8');
+const source = fs.readFileSync(require.resolve('../../Cairm/Cairm/extensions/cairm/content.js'), 'utf8');
 const render = vm.createContext({ escapeHtml: value => String(value ?? ''), formatDocumentSignalsRichTextHtml: value => String(value ?? ''), translateCairnContent: (key, fallback) => fallback, normalizeComparableText: value => String(value || '').trim().toLowerCase() });
 for (const name of ['formatDocumentSignalsDisplayText', 'getDocumentInfoTone', 'buildDocumentSignalsDetailRowHtml', 'formatWarrantyDuration']) {
   const start = source.indexOf(`  function ${name}(`);

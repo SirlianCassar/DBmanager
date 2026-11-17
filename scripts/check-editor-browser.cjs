@@ -111,7 +111,7 @@ const { chromium } = require('playwright');
     await page.locator('#bundleName').fill('CRM new bundle renamed');
     await page.click('#saveBundle');
     const exported = JSON.parse(JSON.stringify(await page.evaluate(() => testExport())));
-    const { loadWwsxgaRuntime } = await import('../../Cairm/tools/lib/wwsxga-runtime.mjs');
+    const { loadWwsxgaRuntime } = await import('../../Cairm/Cairm/tools/lib/wwsxga-runtime.mjs');
     const runtime = loadWwsxgaRuntime(exported);
     assert.equal(runtime.resolveLocalCountry('Manager new country').id, countryId);
     assert.equal(runtime.resolveLocalProductOrBundle('Manager new product').id, productId);

@@ -49,7 +49,7 @@ npm run dist:linux
 
 Les résultats se trouvent dans `dist`. La cible Windows est un exécutable portable x64. Les builds supprimés pour nettoyer le projet sont régénérables ; les dépendances et la base sont conservées.
 
-La documentation fonctionnelle détaillée se trouve dans le dépôt frère : [CairmDB Manager](<../Cairm/docs/obsidian/08 - CairmDB Manager.md>) et [WWSxGA](<../Cairm/docs/obsidian/06 - WWSxGA.md>).
+La documentation fonctionnelle détaillée se trouve dans le dépôt frère : [CairmDB Manager](<../Cairm/Cairm/docs/obsidian/08 - CairmDB Manager.md>) et [WWSxGA](<../Cairm/Cairm/docs/obsidian/06 - WWSxGA.md>).
 
 ## États et informations importantes (1.2.0)
 

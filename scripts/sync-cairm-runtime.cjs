@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const sourcePath = path.resolve(__dirname, '../../Cairm/extensions/cairm/content.js');
+const sourcePath = path.resolve(__dirname, '../../Cairm/Cairm/extensions/cairm/content.js');
 const target = path.resolve(__dirname, '../src/renderer/cairm-runtime.js');
 const names = ['normalizeText', 'normalizeComparableText', 'normalizeLocalIdentityKey', 'findLocalIdentityMatches', 'pushLocalRuleAlias',
   'resolveProductIdsFromActiveBundleComposition', 'normalizeActiveBundleProductIds', 'buildLocalServiceIndex',
