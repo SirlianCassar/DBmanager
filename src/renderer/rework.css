@@ -1374,7 +1374,7 @@ button.add-country-button svg { width: 16px; height: 16px; }
 .highlight-missing .zone-tab[data-missing="1"] { outline-offset: 1px; }
 .highlight-missing .zone-tabs-wrap[data-missing="1"] { display: inline-block; }
 
-/* Spare parts Express US. */
+/* Spare part warning. */
 .spares-panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
 .spares-panel .audit-help { margin: 0; }
 .spare-message { margin: 0; white-space: pre-wrap; color: var(--text); font-size: 13px; line-height: 1.5; }
@@ -1383,7 +1383,7 @@ button.add-country-button svg { width: 16px; height: 16px; }
 .spare-add { display: grid; grid-template-columns: minmax(120px, 180px) minmax(0, 1fr) auto; gap: 8px; }
 .spare-error { min-height: 1em; color: var(--danger); font-size: 12px; }
 .spare-search { max-width: 320px; }
-.spare-seed { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--warning); border-radius: var(--radius-sm); color: var(--text-soft); font-size: 12px; }
+.spare-seed { display: flex; }
 .spare-table { table-layout: fixed; }
 .audit-table.spare-table th:nth-child(1) { width: 180px; }
 .audit-table.spare-table th:nth-child(2) { width: auto; }

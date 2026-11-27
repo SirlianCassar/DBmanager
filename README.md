@@ -1,6 +1,6 @@
 # CairmDB Manager
 
-Application Electron pour examiner et éditer une base de décision CairmDB. Les onglets couvrent les pays, produits régionaux, bundles, SKU, indicateurs de vérification et la liste des pièces Express US que Cairm surligne sur Portal (onglet « Spare parts US », clé `usExpressSpareParts`).
+Application Electron pour examiner et éditer une base de décision CairmDB. Les onglets couvrent les pays, produits régionaux, bundles, SKU, indicateurs de vérification et la liste des pièces Express US que Cairm surligne sur Portal (onglet « Spare part warning », clé `usExpressSpareParts`).
 
 ## Démarrage
 

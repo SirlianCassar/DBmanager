@@ -1187,7 +1187,7 @@
           <button class="tab" id="tab-ga" role="tab" type="button" data-view="ga" aria-controls="view-ga" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM8 7V4h8v3M4 12h16"/></svg>Products</button>
           <button class="tab" id="tab-bundles" role="tab" type="button" data-view="bundles" aria-controls="view-bundles" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>Bundles</button>
           <button class="tab" id="tab-sku" role="tab" type="button" data-view="sku" aria-controls="view-sku" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>SKUs</button>
-          <button class="tab" id="tab-spares" role="tab" type="button" data-view="spares" aria-controls="view-spares" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 20h18zM12 10v4M12 17h.01"/></svg>Spare parts US</button>
+          <button class="tab" id="tab-spares" role="tab" type="button" data-view="spares" aria-controls="view-spares" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 20h18zM12 10v4M12 17h.01"/></svg>Spare part warning</button>
           <button class="tab" id="tab-cleanup" role="tab" type="button" data-view="cleanup" aria-controls="view-cleanup" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 5 8-2 8 2v6c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10zM8 12l2.5 2.5L16 9"/></svg>Cleanup</button>
         </nav>
       </div>
@@ -1287,13 +1287,12 @@
         <div class="cleanup-panel spares-panel">
           <div class="panel-head">
             <div class="head-row">
-              <h2>Spare parts Express US</h2>
+              <h2>Spare part warning</h2>
               <div class="actions"><button type="button" id="editSpareMessage">Modifier le message</button></div>
             </div>
-            <p class="audit-help">Sur Portal, Cairm surligne en rouge les lignes dont le SKU figure dans cette liste et affiche le message ci-dessous. L’extension garde la liste en mémoire jusqu’à la prochaine mise à jour de la base.</p>
           </div>
           <section class="editor-section">
-            <div class="section-title">Message affiché sur Portal</div>
+            <div class="section-title">Message</div>
             <div id="spareMessage"></div>
           </section>
           <section class="editor-section">
@@ -3322,7 +3321,7 @@
         renderBundlesView();
       }
 
-      // Spare parts Express US : liste globale SKU + nom, lue par Cairm sur Portal. Le SKU seul
+      // Spare part warning : liste globale SKU + nom, lue par Cairm sur Portal. Le SKU seul
       // décide des lignes surlignées ; un seul message, commun à toutes les pièces.
       const SPARE_DEFAULT_MESSAGE = "US shipping: some spare parts cannot currently be shipped with Standard shipping. Pay attention to the parts highlighted in red in the results and only propose Express Shipping for those parts.";
       const SPARE_SEED = Array.isArray(globalThis.CAIRM_US_EXPRESS_SPARE_PARTS) ? globalThis.CAIRM_US_EXPRESS_SPARE_PARTS : [];
@@ -3372,12 +3371,12 @@
         const data = spareParts();
         const message = data && typeof data.message === "string" ? data.message : SPARE_DEFAULT_MESSAGE;
         messageNode.innerHTML = spareMessageEditing
-          ? `<textarea id="spareMessageInput" rows="4" aria-label="Message affiché sur Portal">${esc(message)}</textarea>
+          ? `<textarea id="spareMessageInput" rows="4" aria-label="Message">${esc(message)}</textarea>
              <div class="actions spare-message-actions"><button type="button" class="primary" id="saveSpareMessage">Enregistrer</button><button type="button" id="cancelSpareMessage">Annuler</button><button type="button" id="resetSpareMessage">Message par défaut</button></div>`
-          : `<p class="spare-message${message ? "" : " is-empty"}">${message ? esc(message) : "Aucun message : seules les lignes seront surlignées."}</p>`;
+          : `<p class="spare-message${message ? "" : " is-empty"}">${message ? esc(message) : "Aucun message"}</p>`;
         const parts = data && Array.isArray(data.parts) ? data.parts : [];
         $("spareSeed").innerHTML = !data && SPARE_SEED.length
-          ? `<div class="spare-seed"><span>La base n’a pas encore de liste : Cairm utilise sa liste intégrée (${SPARE_SEED.length} pièces).</span><button type="button" id="seedSpareParts">Reprendre la liste intégrée</button></div>`
+          ? `<div class="spare-seed"><button type="button" id="seedSpareParts">Reprendre la liste intégrée (${SPARE_SEED.length} pièces)</button></div>`
           : "";
         const query = normalize($("spareSearch").value);
         const visible = parts.map((part, index) => ({ part, index }))
@@ -3388,7 +3387,7 @@
               <tr><td><input class="spare-sku" data-spare-index="${index}" data-spare-field="sku" value="${esc(part && part.sku)}" aria-label="SKU"></td>
               <td><input data-spare-index="${index}" data-spare-field="name" value="${esc(part && part.name)}" aria-label="Spare part"></td>
               <td><button type="button" class="danger small" data-spare-remove="${index}" title="Retirer ${esc(part && part.sku)}">Retirer</button></td></tr>`).join("")}</tbody></table>`
-          : `<div class="empty">${parts.length ? "Aucune pièce ne correspond" : "Aucune pièce : aucune ligne ne sera surlignée"}</div>`;
+          : `<div class="empty">${parts.length ? "Aucune pièce ne correspond" : "Aucune pièce"}</div>`;
       }
 
       $("editSpareMessage").addEventListener("click", () => {

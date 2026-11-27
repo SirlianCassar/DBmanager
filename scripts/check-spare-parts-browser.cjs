@@ -1,4 +1,4 @@
-// Spare parts US tab: seeding from the list built into Cairm, adding, editing and removing
+// Spare part warning tab: seeding from the list built into Cairm, adding, editing and removing
 // parts, SKU validation, the single global message, and the exported JSON read by Cairm.
 const fs = require('node:fs');
 const path = require('node:path');

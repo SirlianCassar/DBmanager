@@ -1,5 +1,5 @@
 // Liste intégrée à Cairm (extensions/cairm/spare-shipping-data.js), proposée pour amorcer
-// l'onglet Spare parts US quand la base n'a pas encore de liste. Copie, ne pas éditer ici.
+// l'onglet Spare part warning quand la base n'a pas encore de liste. Copie, ne pas éditer ici.
 (() => {
   globalThis.CAIRM_US_EXPRESS_SPARE_PARTS = Object.freeze(
 [
