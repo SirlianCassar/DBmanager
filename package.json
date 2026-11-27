@@ -32,7 +32,8 @@
       "database-files.cjs",
       "src/renderer/db-audit.js",
       "src/renderer/db-audit-worker.js",
-      "src/renderer/cairm-runtime.js"
+      "src/renderer/cairm-runtime.js",
+      "src/renderer/cairm-us-express-seed.js"
     ],
     "mac": {
       "target": [

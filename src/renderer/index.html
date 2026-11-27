@@ -1187,6 +1187,7 @@
           <button class="tab" id="tab-ga" role="tab" type="button" data-view="ga" aria-controls="view-ga" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM8 7V4h8v3M4 12h16"/></svg>Products</button>
           <button class="tab" id="tab-bundles" role="tab" type="button" data-view="bundles" aria-controls="view-bundles" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>Bundles</button>
           <button class="tab" id="tab-sku" role="tab" type="button" data-view="sku" aria-controls="view-sku" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>SKUs</button>
+          <button class="tab" id="tab-spares" role="tab" type="button" data-view="spares" aria-controls="view-spares" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 20h18zM12 10v4M12 17h.01"/></svg>Spare parts US</button>
           <button class="tab" id="tab-cleanup" role="tab" type="button" data-view="cleanup" aria-controls="view-cleanup" aria-selected="false"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 5 8-2 8 2v6c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10zM8 12l2.5 2.5L16 9"/></svg>Cleanup</button>
         </nav>
       </div>
@@ -1282,6 +1283,36 @@
         </div>
       </section>
 
+      <section class="view cleanup-view" id="view-spares" role="tabpanel" aria-labelledby="tab-spares">
+        <div class="cleanup-panel spares-panel">
+          <div class="panel-head">
+            <div class="head-row">
+              <h2>Spare parts Express US</h2>
+              <div class="actions"><button type="button" id="editSpareMessage">Modifier le message</button></div>
+            </div>
+            <p class="audit-help">Sur Portal, Cairm surligne en rouge les lignes dont le SKU figure dans cette liste et affiche le message ci-dessous. L’extension garde la liste en mémoire jusqu’à la prochaine mise à jour de la base.</p>
+          </div>
+          <section class="editor-section">
+            <div class="section-title">Message affiché sur Portal</div>
+            <div id="spareMessage"></div>
+          </section>
+          <section class="editor-section">
+            <div class="section-title">Ajouter une pièce</div>
+            <form id="spareAddForm" class="spare-add" novalidate>
+              <input id="spareSku" autocomplete="off" placeholder="SKU" aria-label="SKU">
+              <input id="spareName" autocomplete="off" placeholder="Spare part" aria-label="Spare part">
+              <button type="submit" class="primary">Ajouter</button>
+            </form>
+            <div id="spareAddError" class="spare-error" role="alert"></div>
+          </section>
+          <section class="editor-section">
+            <div class="head-row"><div class="section-title" id="spareCount"></div><input id="spareSearch" class="spare-search" type="search" autocomplete="off" placeholder="Filtrer par SKU ou nom" aria-label="Filtrer les pièces"></div>
+            <div id="spareSeed"></div>
+            <div id="spareList" class="spare-list"></div>
+          </section>
+        </div>
+      </section>
+
       <section class="view" id="view-bundles" role="tabpanel" aria-labelledby="tab-bundles">
         <div class="split">
           <aside class="panel">
@@ -1331,6 +1362,7 @@
   <script src="db-maintenance.js"></script>
   <script src="cairm-runtime.js"></script>
   <script src="db-audit.js"></script>
+  <script src="cairm-us-express-seed.js"></script>
   <script>
     (() => {
       const STORAGE_KEY = "cairmdb-manager-draft";
@@ -2351,6 +2383,7 @@
         else if (view === "wws") renderWws();
         else if (view === "ga") renderGa();
         else if (view === "sku") renderSkuView();
+        else if (view === "spares") renderSparesView();
         else if (view === "bundles") renderBundlesView();
         else if (view === "cleanup") renderCleanup();
       }
@@ -3285,8 +3318,167 @@
         renderWws();
         renderGa();
         renderSkuView();
+        renderSparesView();
         renderBundlesView();
       }
+
+      // Spare parts Express US : liste globale SKU + nom, lue par Cairm sur Portal. Le SKU seul
+      // décide des lignes surlignées ; un seul message, commun à toutes les pièces.
+      const SPARE_DEFAULT_MESSAGE = "US shipping: some spare parts cannot currently be shipped with Standard shipping. Pay attention to the parts highlighted in red in the results and only propose Express Shipping for those parts.";
+      const SPARE_SEED = Array.isArray(globalThis.CAIRM_US_EXPRESS_SPARE_PARTS) ? globalThis.CAIRM_US_EXPRESS_SPARE_PARTS : [];
+      const SPARE_SKU_PATTERN = /^[A-Za-z0-9._-]+$/;
+      const spareSku = (value) => text(value).replace(/\s+/g, "");
+      let spareMessageEditing = false;
+
+      function spareParts() {
+        const value = state.db && state.db.usExpressSpareParts;
+        return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+      }
+
+      function ensureSpareParts() {
+        if (!spareParts()) state.db.usExpressSpareParts = { message: SPARE_DEFAULT_MESSAGE, parts: [] };
+        const value = state.db.usExpressSpareParts;
+        if (!Array.isArray(value.parts)) value.parts = [];
+        if (typeof value.message !== "string") value.message = SPARE_DEFAULT_MESSAGE;
+        return value;
+      }
+
+      function spareSkuError(sku, ignoreIndex) {
+        if (!sku) return "Le SKU ne peut pas être vide.";
+        if (!SPARE_SKU_PATTERN.test(sku)) return "Le SKU ne doit contenir que des lettres, chiffres, points ou tirets.";
+        const data = spareParts();
+        const parts = data && Array.isArray(data.parts) ? data.parts : [];
+        if (parts.some((part, index) => index !== ignoreIndex && spareSku(part && part.sku) === sku)) return `Le SKU ${sku} est déjà dans la liste.`;
+        return "";
+      }
+
+      function setSpareError(message) {
+        $("spareAddError").textContent = message || "";
+      }
+
+      function renderSparesView() {
+        const messageNode = $("spareMessage");
+        const listNode = $("spareList");
+        const loaded = !!state.db;
+        $("editSpareMessage").hidden = !loaded || spareMessageEditing;
+        $("spareAddForm").querySelectorAll("input, button").forEach((node) => { node.disabled = !loaded; });
+        if (!loaded) {
+          messageNode.innerHTML = '<div class="empty">No database loaded</div>';
+          listNode.innerHTML = "";
+          $("spareCount").textContent = "";
+          $("spareSeed").innerHTML = "";
+          return;
+        }
+        const data = spareParts();
+        const message = data && typeof data.message === "string" ? data.message : SPARE_DEFAULT_MESSAGE;
+        messageNode.innerHTML = spareMessageEditing
+          ? `<textarea id="spareMessageInput" rows="4" aria-label="Message affiché sur Portal">${esc(message)}</textarea>
+             <div class="actions spare-message-actions"><button type="button" class="primary" id="saveSpareMessage">Enregistrer</button><button type="button" id="cancelSpareMessage">Annuler</button><button type="button" id="resetSpareMessage">Message par défaut</button></div>`
+          : `<p class="spare-message${message ? "" : " is-empty"}">${message ? esc(message) : "Aucun message : seules les lignes seront surlignées."}</p>`;
+        const parts = data && Array.isArray(data.parts) ? data.parts : [];
+        $("spareSeed").innerHTML = !data && SPARE_SEED.length
+          ? `<div class="spare-seed"><span>La base n’a pas encore de liste : Cairm utilise sa liste intégrée (${SPARE_SEED.length} pièces).</span><button type="button" id="seedSpareParts">Reprendre la liste intégrée</button></div>`
+          : "";
+        const query = normalize($("spareSearch").value);
+        const visible = parts.map((part, index) => ({ part, index }))
+          .filter(({ part }) => !query || normalize(`${part && part.sku} ${part && part.name}`).includes(query));
+        $("spareCount").textContent = query ? `${visible.length} / ${parts.length} pièces` : `${parts.length} pièce${parts.length > 1 ? "s" : ""}`;
+        listNode.innerHTML = visible.length
+          ? `<table class="audit-table spare-table"><thead><tr><th>SKU</th><th>Spare part</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>${visible.map(({ part, index }) => `
+              <tr><td><input class="spare-sku" data-spare-index="${index}" data-spare-field="sku" value="${esc(part && part.sku)}" aria-label="SKU"></td>
+              <td><input data-spare-index="${index}" data-spare-field="name" value="${esc(part && part.name)}" aria-label="Spare part"></td>
+              <td><button type="button" class="danger small" data-spare-remove="${index}" title="Retirer ${esc(part && part.sku)}">Retirer</button></td></tr>`).join("")}</tbody></table>`
+          : `<div class="empty">${parts.length ? "Aucune pièce ne correspond" : "Aucune pièce : aucune ligne ne sera surlignée"}</div>`;
+      }
+
+      $("editSpareMessage").addEventListener("click", () => {
+        if (!state.db) return;
+        spareMessageEditing = true;
+        renderSparesView();
+        $("spareMessageInput").focus();
+      });
+
+      $("spareMessage").addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button || !state.db) return;
+        if (button.id === "resetSpareMessage") {
+          $("spareMessageInput").value = SPARE_DEFAULT_MESSAGE;
+          return;
+        }
+        if (button.id === "saveSpareMessage") {
+          const value = text($("spareMessageInput").value);
+          const data = ensureSpareParts();
+          if (data.message !== value) {
+            data.message = value;
+            markDirty();
+          }
+        }
+        if (button.id === "saveSpareMessage" || button.id === "cancelSpareMessage") {
+          spareMessageEditing = false;
+          renderSparesView();
+          $("editSpareMessage").focus();
+        }
+      });
+
+      $("spareAddForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!state.db) return;
+        const sku = spareSku($("spareSku").value);
+        const name = text($("spareName").value);
+        const error = !name ? "Renseignez le nom de la pièce." : spareSkuError(sku, -1);
+        if (error) { setSpareError(error); return; }
+        ensureSpareParts().parts.unshift({ sku, name });
+        setSpareError("");
+        $("spareSku").value = "";
+        $("spareName").value = "";
+        $("spareSearch").value = "";
+        markDirty();
+        renderSparesView();
+        $("spareSku").focus();
+      });
+
+      $("spareSearch").addEventListener("input", renderSparesView);
+
+      $("spareSeed").addEventListener("click", (event) => {
+        if (!event.target.closest("#seedSpareParts") || !state.db || spareParts()) return;
+        state.db.usExpressSpareParts = { message: SPARE_DEFAULT_MESSAGE, parts: SPARE_SEED.map((part) => ({ sku: spareSku(part.sku), name: text(part.name) })) };
+        markDirty();
+        renderSparesView();
+      });
+
+      $("spareList").addEventListener("change", (event) => {
+        const input = event.target.closest("[data-spare-field]");
+        const data = spareParts();
+        if (!input || !data) return;
+        const index = Number(input.dataset.spareIndex);
+        const part = data.parts[index];
+        if (!part) return;
+        const field = input.dataset.spareField;
+        const value = field === "sku" ? spareSku(input.value) : text(input.value);
+        const error = field === "sku" ? spareSkuError(value, index) : value ? "" : "Le nom de la pièce ne peut pas être vide.";
+        if (error) {
+          setSpareError(error);
+          input.value = part[field] || "";
+          return;
+        }
+        setSpareError("");
+        input.value = value;
+        if (part[field] === value) return;
+        part[field] = value;
+        markDirty();
+      });
+
+      $("spareList").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-spare-remove]");
+        const data = spareParts();
+        if (!button || !data) return;
+        const index = Number(button.dataset.spareRemove);
+        const part = data.parts[index];
+        if (!part || !confirm(`Retirer ${part.sku} — ${part.name} de la liste ?`)) return;
+        data.parts.splice(index, 1);
+        markDirty();
+        renderSparesView();
+      });
 
 
       function buildExportDb() {
