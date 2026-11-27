@@ -1391,3 +1391,6 @@ button.add-country-button svg { width: 16px; height: 16px; }
 .audit-table.spare-table td { padding: 4px 6px; vertical-align: middle; }
 .spare-table input { min-height: 28px; }
 .spare-sku { font-variant-numeric: tabular-nums; }
+/* The view scrolls with a 16px padding: the header sticks to the very top and hides the rows. */
+.audit-table.spare-table { border-collapse: separate; border-spacing: 0; }
+.audit-table.spare-table thead th { top: -16px; z-index: 2; }
